@@ -49,3 +49,19 @@ test: $(EXECUTABLE)
 
 	rm -rf $(TEST_DIR)
 	echo "Done"
+
+crosscompile: $(SOURCES)
+	mkdir -p crosscompile
+
+	GCGO_ENABLED=0 OOS=linux GOARCH=amd64 go build -tags netgo -o crosscompile/pft_linux_amd64 $(SOURCES)
+	GGCGO_ENABLED=0 OOS=linux GOARCH=386 go build -tags netgo -o crosscompile/pft_linux_386 $(SOURCES)
+	GGCGO_ENABLED=0 OOS=linux GOARCH=arm go build -tags netgo -o crosscompile/pft_linux_arm $(SOURCES)
+	GGCGO_ENABLED=0 OOS=linux GOARCH=arm64 go build -tags netgo -o crosscompile/pft_linux_arm64 $(SOURCES)
+
+	GGCGO_ENABLED=0 OOS=windows GOARCH=amd64 go build -tags netgo -o crosscompile/pft_win_amd64.exe $(SOURCES)
+	GGCGO_ENABLED=0 OOS=windows GOARCH=386 go build -tags netgo -o crosscompile/pft_win_386.exe $(SOURCES)
+	GGCGO_ENABLED=0 OOS=windows GOARCH=arm go build -tags netgo -o crosscompile/pft_win_arm.exe $(SOURCES)
+	GGCGO_ENABLED=0 OOS=windows GOARCH=arm64 go build -tags netgo -o crosscompile/pft_win_arm64.exe $(SOURCES)
+
+	GGCGO_ENABLED=0 OOS=darwin GOARCH=arm64 go build -tags netgo -o crosscompile/pft_darwin_arm64 $(SOURCES)
+	GGCGO_ENABLED=0 OOS=darwin GOARCH=amd64 go build -tags netgo -o crosscompile/pft_darwin_amd64 $(SOURCES)
