@@ -1,15 +1,15 @@
 package main
 
 import (
-	"net"
 	"fmt"
 	"os"
+	"io"
 	"encoding/binary"
 )
 
-func sendFiles(files []string, conn net.Conn) int {
+func sendFiles(files []string, conn io.ReadWriteCloser) int {
 	defer conn.Close()
-	
+
 	if checkHeaders(SND_HEADER, conn) != 0 {
 		return 1
 	}
