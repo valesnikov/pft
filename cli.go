@@ -7,7 +7,7 @@ import (
 )
 
 func progressBar(progress float64, cellNumber int, roundPrec int) string {
-	num := int(math.Round(float64(progress)/100 * float64(cellNumber)))
+	num := int(math.Round(progress/100 * float64(cellNumber)))
 
 	res := "["
 	for i := 0; i < num; i++ {
