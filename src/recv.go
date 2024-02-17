@@ -3,12 +3,12 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
+	"net"
 	"os"
 	"path"
 )
 
-func getFiles(destDir string, conn io.ReadWriteCloser) int {
+func getFiles(destDir string, conn net.Conn) int {
 	defer conn.Close()
 	if checkHeaders(RCV_HEADER, conn) != 0 {
 		return 1

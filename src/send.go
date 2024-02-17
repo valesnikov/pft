@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
-	"io"
+	"net"
 	"encoding/binary"
 )
 
-func sendFiles(files []string, conn io.ReadWriteCloser) int {
+func sendFiles(files []string, conn net.Conn) int {
 	defer conn.Close()
 
 	if checkHeaders(SND_HEADER, conn) != 0 {
@@ -28,6 +28,7 @@ func sendFiles(files []string, conn io.ReadWriteCloser) int {
 			fmt.Println(err)
 			continue
 		}
+
 		fileName := fStat.Name()
 		nameSize := len(fileName)
 		fileSize := fStat.Size()
@@ -47,7 +48,7 @@ func sendFiles(files []string, conn io.ReadWriteCloser) int {
 
 		remaining := fileSize
 		percentage := int64(-1)
-
+		
 		for remaining > 0 {
 			var msg_size int = BUFSIZE
 			if remaining < int64(BUFSIZE) {

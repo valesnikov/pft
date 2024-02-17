@@ -1,6 +1,7 @@
 PREFIX=/usr/local
 DESTDIR=
-SOURCES=*.go
+SRC_DIR=src
+SOURCES=$(SRC_DIR)/*.go
 EXECUTABLE=pft
 
 TEST_DIR=test
@@ -8,7 +9,7 @@ TEST_DIR=test
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
-	go build -o $(EXECUTABLE)
+	go build -C $(SRC_DIR) -o ../$(EXECUTABLE)
 
 install: $(EXECUTABLE)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
@@ -53,15 +54,15 @@ test: $(EXECUTABLE)
 crosscompile:
 	mkdir -p crosscompile
 
-	GCGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -o crosscompile/$(EXECUTABLE)_linux_amd64
-	CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -tags netgo -o crosscompile/$(EXECUTABLE)_linux_386
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm go build -tags netgo -o crosscompile/$(EXECUTABLE)_linux_arm
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -tags netgo -o crosscompile/$(EXECUTABLE)_linux_arm64
+	GCGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_linux_amd64
+	CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_linux_386
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_linux_arm
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_linux_arm64
 
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags netgo -o crosscompile/$(EXECUTABLE)_win_amd64.exe
-	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -tags netgo -o crosscompile/$(EXECUTABLE)_win_386.exe
-	CGO_ENABLED=0 GOOS=windows GOARCH=arm go build -tags netgo -o crosscompile/$(EXECUTABLE)_win_arm.exe
-	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -tags netgo -o crosscompile/$(EXECUTABLE)_win_arm64.exe
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_win_amd64.exe
+	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_win_386.exe
+	CGO_ENABLED=0 GOOS=windows GOARCH=arm go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_win_arm.exe
+	CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_win_arm64.exe
 
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -tags netgo -o crosscompile/$(EXECUTABLE)_darwin_arm64
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -tags netgo -o crosscompile/$(EXECUTABLE)_darwin_amd64
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_darwin_arm64
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -C $(SRC_DIR) -tags netgo -o ../crosscompile/$(EXECUTABLE)_darwin_amd64
