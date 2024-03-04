@@ -53,7 +53,6 @@ func client_send() int {
 	return sendFiles(os.Args[4:], conn)
 }
 
-
 func client_receive() int {
 	conn, err := net.Dial("tcp", os.Args[2]+":"+os.Args[3])
 	if err != nil {
@@ -65,11 +64,11 @@ func client_receive() int {
 
 func invalid_usage() {
 	fmt.Print(
-	"usage:\n"+
-	"pft hs <port> [files]\n" +
-	"pft hr <port> <destdir>\n" +
-	"pft cs <addr> <port> [files]\n" +
-	"pft cr <addr> <port> <destdir>\n")
+		"usage:\n" +
+			"pft hs <port> [files]\n" +
+			"pft hr <port> <destdir>\n" +
+			"pft cs <addr> <port> [files]\n" +
+			"pft cr <addr> <port> <destdir>\n")
 	os.Exit(1)
 }
 

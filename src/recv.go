@@ -79,10 +79,9 @@ func getFiles(destDir string, conn net.Conn) int {
 
 			remaining -= uint64(nWrite)
 			if int64(100-(remaining*100)/fileSize) != percentage {
-				percentage = int64(100-(remaining*100)/fileSize)
+				percentage = int64(100 - (remaining*100)/fileSize)
 				fmt.Print("\033[2K\r")
-				fmt.Print(progressBar(float64(percentage), 10, 0))
-				fmt.Printf("- %v", fileName)
+				printLine(fileName, float64(percentage))
 			}
 		}
 

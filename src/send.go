@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"net"
 	"encoding/binary"
+	"fmt"
+	"net"
+	"os"
 )
 
 func sendFiles(files []string, conn net.Conn) int {
@@ -48,7 +48,7 @@ func sendFiles(files []string, conn net.Conn) int {
 
 		remaining := fileSize
 		percentage := int64(-1)
-		
+
 		for remaining > 0 {
 			var msg_size int = BUFSIZE
 			if remaining < int64(BUFSIZE) {
@@ -71,8 +71,7 @@ func sendFiles(files []string, conn net.Conn) int {
 			if 100-(remaining*100)/fileSize != percentage {
 				percentage = 100 - (remaining*100)/fileSize
 				fmt.Print("\033[2K\r")
-				fmt.Print(progressBar(float64(percentage), 10, 0))
-				fmt.Printf("- %v", fileName)
+				printLine(filepath, float64(percentage))
 			}
 		}
 		fmt.Print("\n")
