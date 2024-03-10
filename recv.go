@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path"
@@ -10,19 +11,16 @@ import (
 
 func getFiles(destDir string, conn net.Conn) error {
 	defer conn.Close()
-	
 	err := checkHeaders(RCV_HEADER, conn)
 	if err != nil {
 		return err
 	}
-
 	recvBuf := make([]byte, BUFSIZE)
 	fmt.Println("Started receiving")
 
 	for {
 		sizesBuf := [16]byte{}
-		_, err := conn.Read(sizesBuf[:])
-
+		_, err = io.ReadFull(conn, sizesBuf[:])
 		if err != nil {
 			return err
 		}
@@ -35,7 +33,7 @@ func getFiles(destDir string, conn net.Conn) error {
 		}
 
 		nameBuf := make([]byte, nameSize)
-		_, err = conn.Read(nameBuf)
+		_, err = io.ReadFull(conn, nameBuf)
 		if err != nil {
 			return err
 		}
@@ -66,16 +64,12 @@ func getFiles(destDir string, conn net.Conn) error {
 				return err
 			}
 
-			nWrite, err := file.Write(recvBuf[:nRead])
+			_, err = file.Write(recvBuf[:nRead])
 			if err != nil {
 				return err
 			}
 
-			if nWrite != nRead {
-				fmt.Println("File write error", nWrite, nRead)
-			}
-
-			remaining -= uint64(nWrite)
+			remaining -= uint64(nRead)
 			if int64(100-(remaining*100)/fileSize) != percentage {
 				percentage = int64(100 - (remaining*100)/fileSize)
 				fmt.Print("\033[2K\r")
@@ -87,7 +81,7 @@ func getFiles(destDir string, conn net.Conn) error {
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Print("\n")
+		fmt.Println("")
 		//fmt.Printf("Done: %v\n", fullName)
 	}
 	fmt.Println("Finished receiving")

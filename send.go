@@ -9,12 +9,10 @@ import (
 
 func sendFiles(files []string, conn net.Conn) error {
 	defer conn.Close()
-
 	err := checkHeaders(SND_HEADER, conn)
 	if err != nil {
 		return err
 	}
-
 	sendBuf := make([]byte, BUFSIZE)
 
 	for _, filepath := range files {
@@ -55,9 +53,12 @@ func sendFiles(files []string, conn net.Conn) error {
 				msg_size = int(remaining)
 			}
 
-			_, err := file.Read(sendBuf[:msg_size])
+			nRead, err := file.Read(sendBuf[:msg_size])
 			if err != nil {
 				return err
+			}
+			if nRead < msg_size {
+				msg_size = nRead
 			}
 
 			_, err = conn.Write(sendBuf[:msg_size])
@@ -72,8 +73,7 @@ func sendFiles(files []string, conn net.Conn) error {
 				printLine(filepath, float64(percentage))
 			}
 		}
-		fmt.Print("\n")
-		//fmt.Println("\nDone:", fileName)
+		fmt.Println("")
 	}
 
 	_, err = conn.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
