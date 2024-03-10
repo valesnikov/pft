@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const DEFAULT_PORT = "29192"
+const DEFAULT_PORT = "29192" //random port not usually used
 
 var PORT_FLAG = &cli.StringFlag{
 	Name:    "port",
@@ -23,43 +23,50 @@ var ADDR_FLAG = &cli.StringFlag{
 	Usage:   "network address for transmission",
 }
 
+var DESTDIR_FLAG = &cli.StringFlag{
+	Name:    "destdir",
+	Aliases: []string{"d"},
+	Value:   ".",
+	Usage:   "saving directory",
+}
+
 func main() {
 	cmd := &cli.App{
-		Name:                 "pft",
-		Usage:                "TCP file sender/receiver",
-		EnableBashCompletion: true,
-
+		Name:      "pft",
+		Usage:     "TCP file sender/receiver",
+		UsageText: "pft command [command options] [files...]",
 		Commands: []*cli.Command{
 			{
-				Name:    "hs",
-				Aliases: []string{"sh"},
-				Usage:   "sending files as a host",
-				Action:  hostSend,
-				Flags:   []cli.Flag{PORT_FLAG},
+				Name:      "hs",
+				Aliases:   []string{"sh", "host-send"},
+				Usage:     "sending files as a host",
+				UsageText: "pft hs [options] [files...]",
+				Action:    hostSend,
+				Flags:     []cli.Flag{PORT_FLAG},
 			},
-
 			{
-				Name:    "hr",
-				Aliases: []string{"rh"},
-				Usage:   "receiving files as a host",
-				Action:  hostReceive,
-				Flags:   []cli.Flag{PORT_FLAG},
+				Name:      "hr",
+				Aliases:   []string{"rh", "host-receive"},
+				Usage:     "receiving files as a host",
+				UsageText: "pft hr [options]",
+				Action:    hostReceive,
+				Flags:     []cli.Flag{PORT_FLAG, DESTDIR_FLAG},
 			},
-
 			{
-				Name:    "cs",
-				Aliases: []string{"sc"},
-				Usage:   "sending files as a client",
-				Action:  clientSend,
-				Flags:   []cli.Flag{PORT_FLAG, ADDR_FLAG},
+				Name:      "cs",
+				Aliases:   []string{"sc", "client-send"},
+				Usage:     "sending files as a client",
+				UsageText: "pft cs [options] [files...]",
+				Action:    clientSend,
+				Flags:     []cli.Flag{PORT_FLAG, ADDR_FLAG},
 			},
-
 			{
-				Name:    "cr",
-				Aliases: []string{"rc"},
-				Usage:   "receiving files as a client",
-				Action:  clientReceive,
-				Flags:   []cli.Flag{PORT_FLAG, ADDR_FLAG},
+				Name:      "cr",
+				Aliases:   []string{"rc", "client-receive"},
+				Usage:     "receiving files as a client",
+				UsageText: "pft cr [options]",
+				Action:    clientReceive,
+				Flags:     []cli.Flag{PORT_FLAG, ADDR_FLAG, DESTDIR_FLAG},
 			},
 		},
 	}
@@ -104,7 +111,7 @@ func hostReceive(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	} else {
-		return getFiles(ctx.Args().Get(0), conn)
+		return getFiles(ctx.String("destdir"), conn)
 	}
 }
 
@@ -122,9 +129,10 @@ func clientSend(ctx *cli.Context) error {
 }
 
 func clientReceive(ctx *cli.Context) error {
-	conn, err := net.Dial("tcp", ctx.String("address")+":"+"29192")
+
+	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
 	if err != nil {
 		return err
 	}
-	return getFiles(ctx.Args().Get(0), conn)
+	return getFiles(ctx.String("destdir"), conn)
 }

@@ -3,45 +3,44 @@ A program for file transfer over a network using TCP protocol. You can independe
 # Install
 
 ```bash
-make
-sudo make install
+go build
 ```
-## Uninstall
-
+The project is compiled into 1 binary executable file, which should be moved to the PATH of your choice
 ```bash
-sudo make uninstall
+#linux
+sudo mv ./pft /usr/local/bin/pft
 ```
 
 # Usage
 
 ```bash
-pft hs <port> [files]
-pft hr <port> <destdir>
-pft cs <addr> <port> [files]
-pft cr <addr> <port> <destdir>
+pft hs -p <port> [files]
+pft hr -p <port> -d <destdir>
+pft cs -a <addr> -p <port> [files]
+pft cr -a <addr> -p <port> -d <destdir>
 ```
 
-* __hs__ - host sender
-* __hr__ - host receiver
-* __cs__ - client sender
-* __cr__ - client receiver
-* __addr__ - host ip or domain, specified for the client
-* __port__ - transfer port
-* __destdir__ - The folder where the received files will be uploaded, specify only for the receiver
+* __hs, sh__ - host sender
+* __hr, rh__ - host receiver
+* __cs, sc__ - client sender
+* __cr, rc__ - client receiver
+* __-a --address {addr}__ - host ip or domain, specified for the client, default local machine
+* __-p --port {port}__ - transfer port, default 29192
+* __-d --destdir {dir}__ - The folder where the received files will be uploaded, specify only for the receiver, default "."
 * __files__ - files to be sent, specify only for the sender, separated by a space
 
 # Examples
 
-Send two archives to the device with IP=192.168.123.123, through 23232 port, the received files will be placed in the current directory.
+Send two archives to the device with IP=192.168.123.123, through default (29192) port, the received files will be placed in the current directory.
 ```bash
-pft hr 23232 . #host
-pft cs 192.168.123.123 23232 archive1.tar archive2.tar #client
+pft hr #host
+pft cs -a 192.168.123.123 archive1.tar archive2.tar #client
 ```
 
-Send to the first connected client all files from the `dir/` folder on port 8841. 
+Send to the first connected client all files from the `dir/` folder on port 10104. 
 The second command connects to the server and retrieves files from it into the
 `downloads/` folder
 ```bash
-pft hs 8841 dir/* 
-pft cr some_domain.com 8841 downloads/
+pft hs -p 10104 -d dir/* 
+pft cr -a some_domain.com -p 10104 -d downloads/
 ```
