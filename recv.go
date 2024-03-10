@@ -6,14 +6,14 @@ import (
 	"net"
 	"os"
 	"path"
-	"errors"
 )
 
 func getFiles(destDir string, conn net.Conn) error {
 	defer conn.Close()
-
-	if checkHeaders(RCV_HEADER, conn) != 0 {
-		return errors.New("check headers: receive and send headers do not match")
+	
+	err := checkHeaders(RCV_HEADER, conn)
+	if err != nil {
+		return err
 	}
 
 	recvBuf := make([]byte, BUFSIZE)

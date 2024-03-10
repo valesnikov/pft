@@ -39,6 +39,10 @@ func printLine(fileName string, proress float64) {
 }
 
 func getBarBySize(size int, progress float64, roundPrec int) string {
+	if size == 0 {
+		return ""
+	}
+	
 	zeroBar := progressBar(progress, 0, roundPrec)
 	if len(zeroBar) > size {
 		return "."

@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"errors"
 )
 
 func sendFiles(files []string, conn net.Conn) error {
 	defer conn.Close()
 
-	if checkHeaders(SND_HEADER, conn) != 0 {
-		return errors.New("receive and send headers do not match")
+	err := checkHeaders(SND_HEADER, conn)
+	if err != nil {
+		return err
 	}
 
 	sendBuf := make([]byte, BUFSIZE)
@@ -76,7 +76,7 @@ func sendFiles(files []string, conn net.Conn) error {
 		//fmt.Println("\nDone:", fileName)
 	}
 
-	_, err := conn.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	_, err = conn.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
 		return err
 	}
