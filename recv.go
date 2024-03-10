@@ -6,13 +6,16 @@ import (
 	"net"
 	"os"
 	"path"
+	"errors"
 )
 
-func getFiles(destDir string, conn net.Conn) int {
+func getFiles(destDir string, conn net.Conn) error {
 	defer conn.Close()
+
 	if checkHeaders(RCV_HEADER, conn) != 0 {
-		return 1
+		return errors.New("check headers: receive and send headers do not match")
 	}
+
 	recvBuf := make([]byte, BUFSIZE)
 	fmt.Println("Started receiving")
 
@@ -21,8 +24,7 @@ func getFiles(destDir string, conn net.Conn) int {
 		_, err := conn.Read(sizesBuf[:])
 
 		if err != nil {
-			fmt.Println(err)
-			return 1
+			return err
 		}
 
 		nameSize := binary.BigEndian.Uint64(sizesBuf[0:8])
@@ -35,8 +37,7 @@ func getFiles(destDir string, conn net.Conn) int {
 		nameBuf := make([]byte, nameSize)
 		_, err = conn.Read(nameBuf)
 		if err != nil {
-			fmt.Println(err)
-			return 1
+			return err
 		}
 		fullName := string(nameBuf)
 		fileName := path.Join(destDir, path.Base(fullName))
@@ -44,8 +45,7 @@ func getFiles(destDir string, conn net.Conn) int {
 
 		file, err := os.Create(tmpName)
 		if err != nil {
-			fmt.Println(err)
-			return 1
+			return err
 		}
 		defer os.Remove(tmpName)
 		defer file.Close()
@@ -63,14 +63,12 @@ func getFiles(destDir string, conn net.Conn) int {
 
 			nRead, err := conn.Read(recvBuf[:msg_size])
 			if err != nil {
-				fmt.Println(err)
-				return 1
+				return err
 			}
 
 			nWrite, err := file.Write(recvBuf[:nRead])
 			if err != nil {
-				fmt.Println(err)
-				return 1
+				return err
 			}
 
 			if nWrite != nRead {
@@ -93,5 +91,5 @@ func getFiles(destDir string, conn net.Conn) int {
 		//fmt.Printf("Done: %v\n", fullName)
 	}
 	fmt.Println("Finished receiving")
-	return 0
+	return nil
 }

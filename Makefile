@@ -32,8 +32,8 @@ test: $(EXECUTABLE)
 	dd if=/dev/random of=$(TEST_DIR)/in/small4.rnd bs=1K count=3
 	dd if=/dev/random of=$(TEST_DIR)/in/small5.rnd bs=1K count=4
 
-	./pft hs 12338 $(TEST_DIR)/in/* &
-	./pft cr localhost 12338 $(TEST_DIR)/out/
+	./pft hs 12337 $(TEST_DIR)/in/* &
+	./pft cr 127.0.0.1 12337 $(TEST_DIR)/out/
 	sleep 1
 
 	#rm $(TEST_DIR)/out/small3.rnd
@@ -42,7 +42,7 @@ test: $(EXECUTABLE)
 	rm $(TEST_DIR)/out/*
 
 	./pft hr 12339 $(TEST_DIR)/out/ &
-	./pft cs localhost 12339 $(TEST_DIR)/in/*
+	./pft cs 127.0.0.1 12339 $(TEST_DIR)/in/*
 	sleep 1
 
 	diff $(TEST_DIR)/in/ $(TEST_DIR)/out/ || (echo "hr and cs failed $$?"; exit 1)

@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"errors"
 )
 
-func sendFiles(files []string, conn net.Conn) int {
+func sendFiles(files []string, conn net.Conn) error {
 	defer conn.Close()
 
 	if checkHeaders(SND_HEADER, conn) != 0 {
-		return 1
+		return errors.New("receive and send headers do not match")
 	}
 
 	sendBuf := make([]byte, BUFSIZE)
@@ -40,8 +41,7 @@ func sendFiles(files []string, conn net.Conn) int {
 
 		_, err = conn.Write(sizeNameBuf)
 		if err != nil {
-			fmt.Println(err)
-			return 1
+			return err
 		}
 
 		//fmt.Printf("Sending: %v\n", fileName)
@@ -55,16 +55,14 @@ func sendFiles(files []string, conn net.Conn) int {
 				msg_size = int(remaining)
 			}
 
-			n, err := file.Read(sendBuf[:msg_size])
-			if err != nil || n != msg_size {
-				fmt.Println(err)
-				return 1
+			_, err := file.Read(sendBuf[:msg_size])
+			if err != nil {
+				return err
 			}
 
-			n, err = conn.Write(sendBuf[:msg_size])
-			if err != nil || n != msg_size {
-				fmt.Println(err)
-				return 1
+			_, err = conn.Write(sendBuf[:msg_size])
+			if err != nil{
+				return err
 			}
 
 			remaining -= int64(msg_size)
@@ -80,9 +78,8 @@ func sendFiles(files []string, conn net.Conn) int {
 
 	_, err := conn.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
-		fmt.Println(err)
-		return 1
+		return err
 	}
 
-	return 0
+	return nil
 }
