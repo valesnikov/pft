@@ -1,19 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"io"
 	"encoding/binary"
+	"fmt"
+	"net"
+	"os"
 )
 
-func sendFiles(files []string, conn io.ReadWriteCloser) int {
+func sendFiles(files []string, conn net.Conn) error {
 	defer conn.Close()
-
-	if checkHeaders(SND_HEADER, conn) != 0 {
-		return 1
+	err := checkHeaders(SND_HEADER, conn)
+	if err != nil {
+		return err
 	}
-
 	sendBuf := make([]byte, BUFSIZE)
 
 	for _, filepath := range files {
@@ -28,6 +27,7 @@ func sendFiles(files []string, conn io.ReadWriteCloser) int {
 			fmt.Println(err)
 			continue
 		}
+
 		fileName := fStat.Name()
 		nameSize := len(fileName)
 		fileSize := fStat.Size()
@@ -39,8 +39,7 @@ func sendFiles(files []string, conn io.ReadWriteCloser) int {
 
 		_, err = conn.Write(sizeNameBuf)
 		if err != nil {
-			fmt.Println(err)
-			return 1
+			return err
 		}
 
 		//fmt.Printf("Sending: %v\n", fileName)
@@ -54,35 +53,33 @@ func sendFiles(files []string, conn io.ReadWriteCloser) int {
 				msg_size = int(remaining)
 			}
 
-			n, err := file.Read(sendBuf[:msg_size])
-			if err != nil || n != msg_size {
-				fmt.Println(err)
-				return 1
+			nRead, err := file.Read(sendBuf[:msg_size])
+			if err != nil {
+				return err
+			}
+			if nRead < msg_size {
+				msg_size = nRead
 			}
 
-			n, err = conn.Write(sendBuf[:msg_size])
-			if err != nil || n != msg_size {
-				fmt.Println(err)
-				return 1
+			_, err = conn.Write(sendBuf[:msg_size])
+			if err != nil{
+				return err
 			}
 
 			remaining -= int64(msg_size)
 			if 100-(remaining*100)/fileSize != percentage {
 				percentage = 100 - (remaining*100)/fileSize
 				fmt.Print("\033[2K\r")
-				fmt.Print(progressBar(float64(percentage), 10, 0))
-				fmt.Printf("- %v", fileName)
+				printLine(filepath, float64(percentage))
 			}
 		}
-		fmt.Print("\n")
-		//fmt.Println("\nDone:", fileName)
+		fmt.Println("")
 	}
 
-	_, err := conn.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	_, err = conn.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
-		fmt.Println(err)
-		return 1
+		return err
 	}
 
-	return 0
+	return nil
 }

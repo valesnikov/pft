@@ -2,101 +2,137 @@ package main
 
 import (
 	"fmt"
+	"github.com/urfave/cli/v2"
 	"net"
 	"os"
 )
 
-func host_send() int {
-	ln, err := net.Listen("tcp", ":"+os.Args[2])
-	if err != nil {
-		fmt.Print(err)
-		return 1
-	}
-	defer ln.Close()
+const DEFAULT_PORT = "29192" //random port not usually used
 
-	fmt.Printf("Start listener on %v port\n", os.Args[2])
-
-	conn, err := ln.Accept()
-	if err != nil {
-		fmt.Println(err)
-		return 1
-	} else {
-		return sendFiles(os.Args[3:], conn)
-	}
+var PORT_FLAG = &cli.StringFlag{
+	Name:    "port",
+	Aliases: []string{"p"},
+	Value:   DEFAULT_PORT,
+	Usage:   "network port for transmission",
 }
 
-func host_receive() int {
-	ln, err := net.Listen("tcp", ":"+os.Args[2])
-	if err != nil {
-		fmt.Print(err)
-		return 1
-	}
-	defer ln.Close()
-
-	fmt.Printf("Start listener on %v port\n", os.Args[2])
-
-	conn, err := ln.Accept()
-	if err != nil {
-		fmt.Println(err)
-		return 1
-	} else {
-		return getFiles(os.Args[3], conn)
-	}
+var ADDR_FLAG = &cli.StringFlag{
+	Name:    "address",
+	Aliases: []string{"a"},
+	Value:   "",
+	Usage:   "network address for transmission",
 }
 
-func client_send() int {
-	conn, err := net.Dial("tcp", os.Args[2]+":"+os.Args[3])
-	if err != nil {
-		fmt.Println(err)
-		return 1
-	}
-	return sendFiles(os.Args[4:], conn)
-}
-
-func client_receive() int {
-	conn, err := net.Dial("tcp", os.Args[2]+":"+os.Args[3])
-	if err != nil {
-		fmt.Println(err)
-		return 1
-	}
-	return getFiles(os.Args[4], conn)
-}
-
-func invalid_usage() {
-	fmt.Print(
-	"usage:\n"+
-	"pft hs <port> [files]\n" +
-	"pft hr <port> <destdir>\n" +
-	"pft cs <addr> <port> [files]\n" +
-	"pft cr <addr> <port> <destdir>\n")
-	os.Exit(1)
+var DESTDIR_FLAG = &cli.StringFlag{
+	Name:    "destdir",
+	Aliases: []string{"d"},
+	Value:   ".",
+	Usage:   "saving directory",
 }
 
 func main() {
-	if len(os.Args) < 2 {
-		invalid_usage()
+	cmd := &cli.App{
+		Name:      "pft",
+		Usage:     "TCP file sender/receiver",
+		UsageText: "pft command [command options] [files...]",
+		Commands: []*cli.Command{
+			{
+				Name:      "hs",
+				Aliases:   []string{"sh", "host-send"},
+				Usage:     "sending files as a host",
+				UsageText: "pft hs [options] [files...]",
+				Action:    hostSend,
+				Flags:     []cli.Flag{PORT_FLAG},
+			},
+			{
+				Name:      "hr",
+				Aliases:   []string{"rh", "host-receive"},
+				Usage:     "receiving files as a host",
+				UsageText: "pft hr [options]",
+				Action:    hostReceive,
+				Flags:     []cli.Flag{PORT_FLAG, DESTDIR_FLAG},
+			},
+			{
+				Name:      "cs",
+				Aliases:   []string{"sc", "client-send"},
+				Usage:     "sending files as a client",
+				UsageText: "pft cs [options] [files...]",
+				Action:    clientSend,
+				Flags:     []cli.Flag{PORT_FLAG, ADDR_FLAG},
+			},
+			{
+				Name:      "cr",
+				Aliases:   []string{"rc", "client-receive"},
+				Usage:     "receiving files as a client",
+				UsageText: "pft cr [options]",
+				Action:    clientReceive,
+				Flags:     []cli.Flag{PORT_FLAG, ADDR_FLAG, DESTDIR_FLAG},
+			},
+		},
 	}
-	if os.Args[1] == "hs" {
-		if len(os.Args) < 4 {
-			invalid_usage()
-		}
-		os.Exit(host_send())
-	} else if os.Args[1] == "hr" {
-		if len(os.Args) != 4 {
-			invalid_usage()
-		}
-		os.Exit(host_receive())
-	} else if os.Args[1] == "cs" {
-		if len(os.Args) < 5 {
-			invalid_usage()
-		}
-		os.Exit(client_send())
-	} else if os.Args[1] == "cr" {
-		if len(os.Args) != 5 {
-			invalid_usage()
-		}
-		os.Exit(client_receive())
+
+	if err := cmd.Run(os.Args); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func hostSend(ctx *cli.Context) error {
+	files := make([]string, ctx.Args().Len())
+	for i := 0; i < ctx.Args().Len(); i++ {
+		files[i] = ctx.Args().Get(i)
+	}
+
+	ln, err := net.Listen("tcp", ":"+ctx.String("port"))
+	if err != nil {
+		return err
+	}
+	defer ln.Close()
+
+	fmt.Printf("Start listener on %v port\n", ctx.String("port"))
+
+	conn, err := ln.Accept()
+	if err != nil {
+		return err
 	} else {
-		invalid_usage()
+		return sendFiles(files, conn)
 	}
+}
+
+func hostReceive(ctx *cli.Context) error {
+	ln, err := net.Listen("tcp", ":"+ctx.String("port"))
+	if err != nil {
+		return err
+	}
+	defer ln.Close()
+
+	fmt.Printf("Start listener on %v port\n", ctx.String("port"))
+
+	conn, err := ln.Accept()
+	if err != nil {
+		return err
+	} else {
+		return getFiles(ctx.String("destdir"), conn)
+	}
+}
+
+func clientSend(ctx *cli.Context) error {
+	files := make([]string, ctx.Args().Len())
+	for i := 0; i < ctx.Args().Len(); i++ {
+		files[i] = ctx.Args().Get(i)
+	}
+
+	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
+	if err != nil {
+		return err
+	}
+	return sendFiles(files, conn)
+}
+
+func clientReceive(ctx *cli.Context) error {
+
+	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
+	if err != nil {
+		return err
+	}
+	return getFiles(ctx.String("destdir"), conn)
 }
