@@ -11,23 +11,22 @@ func printLine(fileName string, proress float64) {
 	if !term.IsTerminal(0) {
 		return
 	}
-	
+
 	width, _, err := term.GetSize(0)
 	if width < 35 {
 		width = 35
 	}
-
 
 	if err != nil {
 		return
 	}
 
 	if len(fileName) > width/3*2 {
-		fileName = "..."+fileName[len(fileName)-(width/3*2-3):]
+		fileName = "..." + fileName[len(fileName)-(width/3*2-3):]
 	}
 
 	progress := getBarBySize(width/3, proress, 0)
-	
+
 	spaces := width - len(progress) - len(fileName)
 
 	result := fileName
@@ -42,7 +41,7 @@ func getBarBySize(size int, progress float64, roundPrec int) string {
 	if size == 0 {
 		return ""
 	}
-	
+
 	zeroBar := progressBar(progress, 0, roundPrec)
 	if len(zeroBar) > size {
 		return "."

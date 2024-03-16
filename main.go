@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-const DEFAULT_PORT = "29192" //random port not usually used
+const DEFAULT_PORT = "29192" //randomly selected port, usually free
 
 var PORT_FLAG = &cli.StringFlag{
 	Name:    "port",
@@ -70,7 +70,6 @@ func main() {
 			},
 		},
 	}
-
 	if err := cmd.Run(os.Args); err != nil {
 		fmt.Println(err)
 	}

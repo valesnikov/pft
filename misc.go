@@ -11,6 +11,7 @@ len(HEADER) byte - header
 while {filename size} != 0 {
 	8 byte - filename size
 	8 byte - file size
+	8 byte - hash
 	{filename size} byte - filename
 	{file size} byte - file
 }
@@ -20,10 +21,11 @@ const BUFSIZE int = 1024 * 1024 //1MiB
 
 const HEADER_SIZE = 8
 
-var SND_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x73, 0x30, 0x30, 0x31, 0x0a} //pfts001\n
-var RCV_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x72, 0x30, 0x30, 0x31, 0x0a} //pftr001\n
+var SND_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x73, 0x30, 0x30, 0x32, 0x0a} //pfts001\n
+var RCV_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x72, 0x30, 0x30, 0x32, 0x0a} //pftr001\n
 
 var ErrHeaders = errors.New("check headers: receive and send headers do not match")
+var ErrWrongHash = errors.New("check hash: hashs dont match")
 
 func checkHeaders(header [HEADER_SIZE]byte, conn io.ReadWriter) error {
 	var hdr = [HEADER_SIZE]byte{}
@@ -45,7 +47,7 @@ func checkHeaders(header [HEADER_SIZE]byte, conn io.ReadWriter) error {
 			fmt.Println(err)
 			return ErrHeaders
 		}
-		
+
 		_, err = conn.Write(header[:]) //send header
 		if err != nil {
 			fmt.Println(err)
