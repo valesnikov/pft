@@ -6,21 +6,27 @@ import (
 	"os"
 )
 
-func sendFiles(files []string, conn net.Conn) error {
+func sendFiles(names []string, conn net.Conn) error {
 	defer conn.Close()
-	err := checkHeaders(SND_HEADER, conn)
+	filesOpen, filesNames, err := halalizeFileName(names)
 	if err != nil {
 		return err
 	}
-	sendBuf := make([]byte, BUFSIZE)
 
-	for _, filepath := range files {
+	err = checkHeaders(SND_HEADER, conn)
+	if err != nil {
+		return err
+	}
+	sendBuf := make([]byte, TransmissionBufferSize)
+
+	for i, filepath := range filesOpen {
 		err := func() error {
 
 			header, err := MakeFileHeader(filepath)
 			if err != nil {
 				return err
 			}
+			header.Name = filesNames[i]
 
 			_, err = conn.Write(header.Serialize())
 			if err != nil {
@@ -37,8 +43,8 @@ func sendFiles(files []string, conn net.Conn) error {
 			defer file.Close()
 
 			for remaining > 0 {
-				var msg_size int = BUFSIZE
-				if remaining < int64(BUFSIZE) {
+				var msg_size int = TransmissionBufferSize
+				if remaining < int64(TransmissionBufferSize) {
 					msg_size = int(remaining)
 				}
 
@@ -71,9 +77,9 @@ func sendFiles(files []string, conn net.Conn) error {
 		}
 	}
 	nullHeader := FileHeader{ //after last file
-		NameSize: 0,
 		Size:     0,
 		Hash:     0,
+		Name: 	 "",
 	}
 	_, err = conn.Write(nullHeader.Serialize())
 	if err != nil {

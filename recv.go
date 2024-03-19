@@ -13,7 +13,7 @@ func getFiles(destDir string, conn net.Conn) error {
 	if err != nil {
 		return err
 	}
-	recvBuf := make([]byte, BUFSIZE)
+	recvBuf := make([]byte, TransmissionBufferSize)
 	fmt.Println("Started receiving")
 
 	for {
@@ -22,13 +22,18 @@ func getFiles(destDir string, conn net.Conn) error {
 			if err != nil {
 				return false, err
 			}
-			if header.Size == 0 || header.NameSize == 0 {
+
+			if header.Size == 0 || header.Name == "" {
 				return true, nil //all files received
 			}
 
-			fullName := header.Name
-			fileName := path.Join(destDir, path.Base(fullName))
+			fileName := path.Join(destDir, header.Name)
 			tmpName := fileName + ".pft_tmp"
+
+			dir, _ := path.Split(fileName)
+			if dir != "" {
+				os.MkdirAll(dir, 0777)
+			}
 
 			file, err := os.Create(tmpName)
 			if err != nil {
@@ -40,8 +45,8 @@ func getFiles(destDir string, conn net.Conn) error {
 			percentage := int64(-1)
 
 			for remaining > 0 {
-				var msg_size int = BUFSIZE
-				if remaining < uint64(BUFSIZE) {
+				var msg_size int = TransmissionBufferSize
+				if remaining < uint64(TransmissionBufferSize) {
 					msg_size = int(remaining)
 				}
 
@@ -65,12 +70,12 @@ func getFiles(destDir string, conn net.Conn) error {
 				}
 			}
 
-			file.Close()
-
-			hash, err := getFileHash(tmpName)
+			hash, err := getFileHash(file)
 			if err != nil {
 				return false, err
 			}
+
+			file.Close()
 
 			if hash == header.Hash {
 				err = os.Rename(tmpName, fileName)

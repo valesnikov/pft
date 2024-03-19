@@ -42,15 +42,12 @@ func Test_NewFileHeader(t *testing.T) {
 
 		fileNameBase := path.Base(file.Name())
 
-		file.Close()
-
-		hash, err := getFileHash(file.Name())
+		hash, err := getFileHash(file)
 		if err != nil {
 			panic(err)
 		}
-
+		file.Close()
 		rightHeaders[i] = FileHeader{
-			NameSize: uint64(len(fileNameBase)),
 			Size:     uint64(len(b)),
 			Hash:     hash,
 			Name:     fileNameBase,

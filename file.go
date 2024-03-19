@@ -2,29 +2,32 @@ package main
 
 import (
 	"encoding/binary"
-	"github.com/cespare/xxhash/v2"
+	"errors"
 	"io"
 	"os"
 	"path"
+	"github.com/cespare/xxhash/v2"
 )
 
+var ErrWrongHash = errors.New("check hash: hashs dont match")
+
 type FileHeader struct {
-	NameSize uint64
-	Size     uint64
-	Hash     uint64
-	Name     string
+	Size uint64
+	Hash uint64
+	Name string
 }
 
 func MakeFileHeader(filepath string) (FileHeader, error) {
-	hash, err := getFileHash(filepath)
-	if err != nil {
-		return FileHeader{}, err
-	}
 	file, err := os.Open(filepath)
 	if err != nil {
 		return FileHeader{}, err
 	}
 	defer file.Close()
+
+	hash, err := getFileHash(file)
+	if err != nil {
+		return FileHeader{}, err
+	}
 
 	fStat, err := file.Stat()
 	if err != nil {
@@ -34,16 +37,15 @@ func MakeFileHeader(filepath string) (FileHeader, error) {
 	fileName := path.Base(file.Name())
 
 	return FileHeader{
-		NameSize: uint64(len(fileName)),
-		Size:     uint64(fStat.Size()),
-		Hash:     hash,
-		Name:     fileName,
+		Size: uint64(fStat.Size()),
+		Hash: hash,
+		Name: fileName,
 	}, nil
 }
 
 func (fh *FileHeader) Serialize() []byte {
-	buf := make([]byte, 24+fh.NameSize)
-	binary.BigEndian.PutUint64(buf[0:8], fh.NameSize)
+	buf := make([]byte, 24+len(fh.Name))
+	binary.BigEndian.PutUint64(buf[0:8], uint64(len(fh.Name)))
 	binary.BigEndian.PutUint64(buf[8:16], fh.Size)
 	binary.BigEndian.PutUint64(buf[16:24], fh.Hash)
 	copy(buf[24:], []byte(fh.Name))
@@ -61,9 +63,9 @@ func ReadFileHeader(reader io.Reader) (FileHeader, error) {
 	fileHash := binary.BigEndian.Uint64(sizesBuf[16:24])
 	if nameSize == 0 || fileSize == 0 {
 		return FileHeader{
-			NameSize: 0,
-			Size:     0,
-			Hash:     0,
+			Size: 0,
+			Hash: 0,
+			Name: "",
 		}, nil
 	}
 
@@ -73,26 +75,24 @@ func ReadFileHeader(reader io.Reader) (FileHeader, error) {
 		return FileHeader{}, err
 	}
 	return FileHeader{
-		NameSize: nameSize,
 		Size:     fileSize,
 		Hash:     fileHash,
 		Name:     string(nameBuf),
 	}, nil
 }
 
-func getFileHash(filepath string) (uint64, error) {
-	file, err := os.Open(filepath)
+func getFileHash(file io.ReadSeeker) (uint64, error) {
+	hash := xxhash.New()
+	pos, err := file.Seek(0, io.SeekCurrent)
 	if err != nil {
 		return 0, err
 	}
-	defer file.Close()
-
-	hash := xxhash.New()
+	file.Seek(0, io.SeekStart)
+	defer file.Seek(pos, io.SeekStart)
 
 	_, err = io.Copy(hash, file)
 	if err != nil {
 		return 0, err
 	}
-
 	return hash.Sum64(), nil
 }

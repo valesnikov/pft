@@ -2,28 +2,31 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli/v2"
 	"net"
 	"os"
+
+	"github.com/urfave/cli/v2"
 )
 
-const DEFAULT_PORT = "29192" //randomly selected port, usually free
+const TransmissionBufferSize int = 1024 * 1024 //1MiB
 
-var PORT_FLAG = &cli.StringFlag{
+const DefaultPort = "29192" //randomly selected port, usually free
+
+var portFlag = &cli.StringFlag{
 	Name:    "port",
 	Aliases: []string{"p"},
-	Value:   DEFAULT_PORT,
+	Value:   DefaultPort,
 	Usage:   "network port for transmission",
 }
 
-var ADDR_FLAG = &cli.StringFlag{
+var addrFlag = &cli.StringFlag{
 	Name:    "address",
 	Aliases: []string{"a"},
 	Value:   "",
 	Usage:   "network address for transmission",
 }
 
-var DESTDIR_FLAG = &cli.StringFlag{
+var destDirFlag = &cli.StringFlag{
 	Name:    "destdir",
 	Aliases: []string{"d"},
 	Value:   ".",
@@ -41,32 +44,32 @@ func main() {
 				Aliases:   []string{"sh", "host-send"},
 				Usage:     "sending files as a host",
 				UsageText: "pft hs [options] [files...]",
-				Action:    hostSend,
-				Flags:     []cli.Flag{PORT_FLAG},
+				Action:    HostSend,
+				Flags:     []cli.Flag{portFlag},
 			},
 			{
 				Name:      "hr",
 				Aliases:   []string{"rh", "host-receive"},
 				Usage:     "receiving files as a host",
 				UsageText: "pft hr [options]",
-				Action:    hostReceive,
-				Flags:     []cli.Flag{PORT_FLAG, DESTDIR_FLAG},
+				Action:    HostReceive,
+				Flags:     []cli.Flag{portFlag, destDirFlag},
 			},
 			{
 				Name:      "cs",
 				Aliases:   []string{"sc", "client-send"},
 				Usage:     "sending files as a client",
 				UsageText: "pft cs [options] [files...]",
-				Action:    clientSend,
-				Flags:     []cli.Flag{PORT_FLAG, ADDR_FLAG},
+				Action:    ClientSend,
+				Flags:     []cli.Flag{portFlag, addrFlag},
 			},
 			{
 				Name:      "cr",
 				Aliases:   []string{"rc", "client-receive"},
 				Usage:     "receiving files as a client",
 				UsageText: "pft cr [options]",
-				Action:    clientReceive,
-				Flags:     []cli.Flag{PORT_FLAG, ADDR_FLAG, DESTDIR_FLAG},
+				Action:    ClientReceive,
+				Flags:     []cli.Flag{portFlag, addrFlag, destDirFlag},
 			},
 		},
 	}
@@ -75,7 +78,7 @@ func main() {
 	}
 }
 
-func hostSend(ctx *cli.Context) error {
+func HostSend(ctx *cli.Context) error {
 	files := make([]string, ctx.Args().Len())
 	for i := 0; i < ctx.Args().Len(); i++ {
 		files[i] = ctx.Args().Get(i)
@@ -95,9 +98,10 @@ func hostSend(ctx *cli.Context) error {
 	} else {
 		return sendFiles(files, conn)
 	}
+
 }
 
-func hostReceive(ctx *cli.Context) error {
+func HostReceive(ctx *cli.Context) error {
 	ln, err := net.Listen("tcp", ":"+ctx.String("port"))
 	if err != nil {
 		return err
@@ -114,7 +118,7 @@ func hostReceive(ctx *cli.Context) error {
 	}
 }
 
-func clientSend(ctx *cli.Context) error {
+func ClientSend(ctx *cli.Context) error {
 	files := make([]string, ctx.Args().Len())
 	for i := 0; i < ctx.Args().Len(); i++ {
 		files[i] = ctx.Args().Get(i)
@@ -127,8 +131,7 @@ func clientSend(ctx *cli.Context) error {
 	return sendFiles(files, conn)
 }
 
-func clientReceive(ctx *cli.Context) error {
-
+func ClientReceive(ctx *cli.Context) error {
 	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
 	if err != nil {
 		return err
