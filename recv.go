@@ -23,7 +23,7 @@ func getFiles(destDir string, conn io.ReadWriteCloser) error {
 				return false, err
 			}
 
-			if header.Size == 0 || header.Name == "" {
+			if header.Name == "" {
 				return true, nil //all files received
 			}
 
