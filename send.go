@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"net"
+	"io"
 	"os"
 )
 
-func sendFiles(names []string, conn net.Conn) error {
+func sendFiles(names []string, conn io.ReadWriteCloser) error {
 	defer conn.Close()
 	filesOpen, filesNames, err := halalizeFileName(names)
 	if err != nil {

@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"net"
+	"io"
 	"os"
 	"path"
 )
 
-func getFiles(destDir string, conn net.Conn) error {
+func getFiles(destDir string, conn io.ReadWriteCloser) error {
 	defer conn.Close()
 	err := checkHeaders(RCV_HEADER, conn)
 	if err != nil {
@@ -69,9 +69,11 @@ func getFiles(destDir string, conn net.Conn) error {
 					printLine(fileName, float64(percentage))
 				}
 			}
-
+			fmt.Println("")
+			
 			hash, err := getFileHash(file)
 			if err != nil {
+				
 				return false, err
 			}
 
@@ -80,13 +82,14 @@ func getFiles(destDir string, conn net.Conn) error {
 			if hash == header.Hash {
 				err = os.Rename(tmpName, fileName)
 			} else {
-				return false, ErrWrongHash
+				fmt.Printf("failed to receive: %s", fileName)
+				return false, nil
 			}
 
 			if err != nil {
 				fmt.Println(err)
 			}
-			fmt.Println("")
+			
 
 			return false, nil
 		}()

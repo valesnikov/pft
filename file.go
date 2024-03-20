@@ -2,14 +2,11 @@ package main
 
 import (
 	"encoding/binary"
-	"errors"
 	"io"
 	"os"
 	"path"
 	"github.com/cespare/xxhash/v2"
 )
-
-var ErrWrongHash = errors.New("check hash: hashs dont match")
 
 type FileHeader struct {
 	Size uint64
@@ -87,7 +84,10 @@ func getFileHash(file io.ReadSeeker) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	file.Seek(0, io.SeekStart)
+	_, err = file.Seek(0, io.SeekStart)
+	if err != nil {
+		return 0, err
+	}
 	defer file.Seek(pos, io.SeekStart)
 
 	_, err = io.Copy(hash, file)
