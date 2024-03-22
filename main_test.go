@@ -51,8 +51,24 @@ func Test_SendAndReceive(t *testing.T) {
 	outConn, inConn := net.Pipe()
 	fmt.Println("start testing")
 
-	go sendFiles(inFileNames[:], inConn)
-	getFiles(dirOut, outConn)
+	//sendFiles(inFileNames[:], inConn)
+	errChn := make(chan error)
+
+	go func() {
+		err := sendFiles(inFileNames[:], inConn)
+		errChn <- err
+	}()
+
+	rErr := getFiles(dirOut, outConn)
+	if rErr != nil {
+		t.Error(rErr)
+		return
+	}
+	sErr := <-errChn
+	if sErr != nil {
+		t.Error(sErr)
+		return
+	}
 
 	for i := 0; i < fileNum; i++ {
 		f1, err := os.ReadFile(inFileNames[i])

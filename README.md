@@ -1,7 +1,8 @@
 A program for file transfer over a network using TCP protocol. You can independently select host or client, and sender or receiver. You need to specify the mode, address, files, and destination directory. When connecting, the first messages sent are send or receive headers, if they match "receive - send" or "send - receive" then sending starts. This protects against erroneous connections and incompatible program versions
 
 # Install
-
+It can be installed from the [releases page](https://github.com/faceleft/pft/releases). The program consists of 1 executable file and does not require any dependencies.
+Or building from source code.
 ```bash
 go build
 ```

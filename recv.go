@@ -3,86 +3,108 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/cespare/xxhash/v2"
 	"io"
-	"net"
 	"os"
 	"path"
 )
 
-func getFiles(destDir string, conn net.Conn) error {
+func getFiles(destDir string, conn io.ReadWriteCloser) error {
 	defer conn.Close()
 	err := checkHeaders(RCV_HEADER, conn)
 	if err != nil {
 		return err
 	}
-	recvBuf := make([]byte, BUFSIZE)
+	recvBuf := make([]byte, TransmissionBufferSize)
 	fmt.Println("Started receiving")
 
 	for {
-		sizesBuf := [16]byte{}
-		_, err = io.ReadFull(conn, sizesBuf[:])
+		done, err := func() (bool, error) {
+			header, err := ReadFileHeader(conn)
+			if err != nil {
+				return false, err
+			}
+
+			if header.Name == "" {
+				return true, nil //all files received
+			}
+
+			fileName := path.Join(destDir, header.Name)
+			tmpName := fileName + ".pft_tmp"
+
+			dir, _ := path.Split(fileName)
+			if dir != "" {
+				os.MkdirAll(dir, 0777)
+			}
+
+			file, err := os.Create(tmpName)
+			if err != nil {
+				return false, err
+			}
+			defer os.Remove(tmpName)
+
+			remaining := header.Size
+			percentage := int64(-1)
+
+			hashWriter := xxhash.New()
+			writer := io.MultiWriter(hashWriter, file)
+
+			for remaining > 0 {
+				var msg_size int = TransmissionBufferSize
+				if remaining < uint64(TransmissionBufferSize) {
+					msg_size = int(remaining)
+				}
+
+				nRead, err := conn.Read(recvBuf[:msg_size])
+				if err != nil {
+					file.Close()
+					return false, err
+				}
+
+				_, err = writer.Write(recvBuf[:nRead])
+				if err != nil {
+					file.Close()
+					return false, err
+				}
+
+				remaining -= uint64(nRead)
+				if int64(100-(remaining*100)/header.Size) != percentage {
+					percentage = int64(100 - (remaining*100)/header.Size)
+					fmt.Print("\033[2K\r")
+					printLine(fileName, float64(percentage))
+				}
+			}
+			file.Close()
+			fmt.Println("")
+
+			hash := hashWriter.Sum64()
+			hashBuf := [8]byte{}
+			_, err = io.ReadFull(conn, hashBuf[:])
+			if err != nil {
+				return false, err
+			}
+			testHash := binary.BigEndian.Uint64(hashBuf[:])
+
+			if hash == testHash {
+				err = os.Rename(tmpName, fileName)
+			} else {
+				fmt.Printf("failed to receive: %s", fileName)
+				return false, nil
+			}
+
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			return false, nil
+		}()
+
 		if err != nil {
 			return err
 		}
-
-		nameSize := binary.BigEndian.Uint64(sizesBuf[0:8])
-		fileSize := binary.BigEndian.Uint64(sizesBuf[8:16])
-
-		if nameSize == 0 {
+		if done {
 			break
 		}
-
-		nameBuf := make([]byte, nameSize)
-		_, err = io.ReadFull(conn, nameBuf)
-		if err != nil {
-			return err
-		}
-		fullName := string(nameBuf)
-		fileName := path.Join(destDir, path.Base(fullName))
-		tmpName := fileName + ".pft_tmp"
-
-		file, err := os.Create(tmpName)
-		if err != nil {
-			return err
-		}
-		defer os.Remove(tmpName)
-		defer file.Close()
-
-		//fmt.Printf("Getting: %v\n", fullName)
-
-		remaining := fileSize
-		percentage := int64(-1)
-
-		for remaining > 0 {
-			var msg_size int = BUFSIZE
-			if remaining < uint64(BUFSIZE) {
-				msg_size = int(remaining)
-			}
-
-			nRead, err := conn.Read(recvBuf[:msg_size])
-			if err != nil {
-				return err
-			}
-
-			_, err = file.Write(recvBuf[:nRead])
-			if err != nil {
-				return err
-			}
-
-			remaining -= uint64(nRead)
-			if int64(100-(remaining*100)/fileSize) != percentage {
-				percentage = int64(100 - (remaining*100)/fileSize)
-				fmt.Print("\033[2K\r")
-				printLine(fileName, float64(percentage))
-			}
-		}
-
-		err = os.Rename(tmpName, fileName)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println("")
-		//fmt.Printf("Done: %v\n", fullName)
 	}
 	fmt.Println("Finished receiving")
 	return nil
