@@ -14,22 +14,16 @@ len(HEADER) byte - header
 while {filename size} != 0 {
 	8 byte - filename size
 	8 byte - file size
-	8 byte - hash
 	{filename size} byte - filename
 	{file size} byte - file
+	8 byte - hash
 }
-*/
-
-/*
-HEADER_SIZE byte - header
-8 byte - num connections
-8 byte -
 */
 
 const HEADER_SIZE = 8
 
-var SND_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x73, 0x30, 0x30, 0x32, 0x0a} //pfts002\n
-var RCV_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x72, 0x30, 0x30, 0x32, 0x0a} //pftr002\n
+var SND_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x73, 0x30, 0x30, 0x33, 0x0a} //pfts003\n
+var RCV_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x72, 0x30, 0x30, 0x33, 0x0a} //pftr003\n
 
 var headerTemplate = regexp.MustCompile(`^pft[rs]\d{3}\n`)
 
@@ -88,7 +82,6 @@ func checkHeaders(header [HEADER_SIZE]byte, conn io.ReadWriter) error {
 
 	return nil
 }
-
 
 func halalizeFileName(names []string) (forOpen, forSend []string, err error) {
 	forOpen = make([]string, 0, len(names))

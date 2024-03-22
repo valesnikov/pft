@@ -33,13 +33,6 @@ var destDirFlag = &cli.StringFlag{
 	Usage:   "saving directory",
 }
 
-var fileFlag = &cli.StringFlag{
-	Name:     "file",
-	Aliases:  []string{"f"},
-	Required: true,
-	Usage:    "file for writing or reading",
-}
-
 func main() {
 	cmd := &cli.App{
 		Name:      "pft",
@@ -77,23 +70,6 @@ func main() {
 				UsageText: "pft cr [options]",
 				Action:    ClientReceive,
 				Flags:     []cli.Flag{portFlag, addrFlag, destDirFlag},
-			},
-
-			{
-				Name:      "fs",
-				Aliases:   []string{"sf", "file-send"},
-				Usage:     "sending files to file",
-				UsageText: "pft fs [options] [files...]",
-				Action:    FileSend,
-				Flags:     []cli.Flag{fileFlag},
-			},
-			{
-				Name:      "fr",
-				Aliases:   []string{"rf", "file-receive"},
-				Usage:     "receiving files from file",
-				UsageText: "pft fr [options]",
-				Action:    FileReceive,
-				Flags:     []cli.Flag{fileFlag, destDirFlag},
 			},
 		},
 	}
@@ -161,24 +137,4 @@ func ClientReceive(ctx *cli.Context) error {
 		return err
 	}
 	return getFiles(ctx.String("destdir"), conn)
-}
-
-func FileSend(ctx *cli.Context) error {
-	files := make([]string, ctx.Args().Len())
-	for i := 0; i < ctx.Args().Len(); i++ {
-		files[i] = ctx.Args().Get(i)
-	}
-	file, err := os.Create(ctx.String("file"))
-	if err != nil {
-		return err
-	}
-	return sendFiles(files, newPftWriter(file))
-}
-
-func FileReceive(ctx *cli.Context) error {
-	file, err := os.Open(ctx.String("file"))
-	if err != nil {
-		return err
-	}
-	return getFiles(ctx.String("destdir"), newPftReader(file))
 }

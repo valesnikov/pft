@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
+	"github.com/cespare/xxhash/v2"
 	"io"
 	"os"
 )
@@ -42,6 +44,9 @@ func sendFiles(names []string, conn io.ReadWriteCloser) error {
 			}
 			defer file.Close()
 
+			hashWriter := xxhash.New()
+			writer := io.MultiWriter(hashWriter, conn)
+
 			for remaining > 0 {
 				var msg_size int = TransmissionBufferSize
 				if remaining < int64(TransmissionBufferSize) {
@@ -56,7 +61,7 @@ func sendFiles(names []string, conn io.ReadWriteCloser) error {
 					msg_size = nRead
 				}
 
-				_, err = conn.Write(sendBuf[:msg_size])
+				_, err = writer.Write(sendBuf[:msg_size])
 				if err != nil {
 					return err
 				}
@@ -68,6 +73,14 @@ func sendFiles(names []string, conn io.ReadWriteCloser) error {
 					printLine(filepath, float64(percentage))
 				}
 			}
+
+			hashBuf := [8]byte{}
+			binary.BigEndian.PutUint64(hashBuf[:], hashWriter.Sum64())
+			_, err = conn.Write(hashBuf[:])
+			if err != nil {
+				return err
+			}
+
 			fmt.Println("")
 			return nil
 		}()
@@ -77,9 +90,8 @@ func sendFiles(names []string, conn io.ReadWriteCloser) error {
 		}
 	}
 	nullHeader := FileHeader{ //after last file
-		Size:     0,
-		Hash:     0,
-		Name: 	 "",
+		Size: 0,
+		Name: "",
 	}
 	_, err = conn.Write(nullHeader.Serialize())
 	if err != nil {

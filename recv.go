@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
+	"github.com/cespare/xxhash/v2"
 	"io"
 	"os"
 	"path"
@@ -44,6 +46,9 @@ func getFiles(destDir string, conn io.ReadWriteCloser) error {
 			remaining := header.Size
 			percentage := int64(-1)
 
+			hashWriter := xxhash.New()
+			writer := io.MultiWriter(hashWriter, file)
+
 			for remaining > 0 {
 				var msg_size int = TransmissionBufferSize
 				if remaining < uint64(TransmissionBufferSize) {
@@ -56,7 +61,7 @@ func getFiles(destDir string, conn io.ReadWriteCloser) error {
 					return false, err
 				}
 
-				_, err = file.Write(recvBuf[:nRead])
+				_, err = writer.Write(recvBuf[:nRead])
 				if err != nil {
 					file.Close()
 					return false, err
@@ -69,17 +74,18 @@ func getFiles(destDir string, conn io.ReadWriteCloser) error {
 					printLine(fileName, float64(percentage))
 				}
 			}
+			file.Close()
 			fmt.Println("")
-			
-			hash, err := getFileHash(file)
+
+			hash := hashWriter.Sum64()
+			hashBuf := [8]byte{}
+			_, err = io.ReadFull(conn, hashBuf[:])
 			if err != nil {
-				
 				return false, err
 			}
+			testHash := binary.BigEndian.Uint64(hashBuf[:])
 
-			file.Close()
-
-			if hash == header.Hash {
+			if hash == testHash {
 				err = os.Rename(tmpName, fileName)
 			} else {
 				fmt.Printf("failed to receive: %s", fileName)
@@ -89,7 +95,6 @@ func getFiles(destDir string, conn io.ReadWriteCloser) error {
 			if err != nil {
 				fmt.Println(err)
 			}
-			
 
 			return false, nil
 		}()
