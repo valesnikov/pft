@@ -9,13 +9,12 @@ import (
 	"path"
 )
 
-func getFiles(destDir string, conn io.ReadWriteCloser) error {
-	defer conn.Close()
+func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 	err := checkHeaders(RCV_HEADER, conn)
 	if err != nil {
 		return err
 	}
-	recvBuf := make([]byte, TransmissionBufferSize)
+	recvBuf := make([]byte, bufSize)
 	fmt.Println("Started receiving")
 
 	for {
@@ -50,8 +49,8 @@ func getFiles(destDir string, conn io.ReadWriteCloser) error {
 			writer := io.MultiWriter(hashWriter, file)
 
 			for remaining > 0 {
-				var msg_size int = TransmissionBufferSize
-				if remaining < uint64(TransmissionBufferSize) {
+				var msg_size int = bufSize
+				if remaining < uint64(bufSize) {
 					msg_size = int(remaining)
 				}
 

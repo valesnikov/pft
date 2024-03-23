@@ -55,11 +55,11 @@ func Test_SendAndReceive(t *testing.T) {
 	errChn := make(chan error)
 
 	go func() {
-		err := sendFiles(inFileNames[:], inConn)
+		err := sendFiles(inFileNames[:], inConn, 1024*1024)
 		errChn <- err
 	}()
 
-	rErr := getFiles(dirOut, outConn)
+	rErr := getFiles(dirOut, outConn, 1024*1024)
 	if rErr != nil {
 		t.Error(rErr)
 		return

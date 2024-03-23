@@ -83,6 +83,10 @@ func checkHeaders(header [HEADER_SIZE]byte, conn io.ReadWriter) error {
 	return nil
 }
 
+/*
+/a/b/c.d to  c.d
+/e/g/f 	 to  f/a.c, f/b.d, f/g.n
+*/
 func halalizeFileName(names []string) (forOpen, forSend []string, err error) {
 	forOpen = make([]string, 0, len(names))
 	forSend = make([]string, 0, len(names))

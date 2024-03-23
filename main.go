@@ -7,8 +7,6 @@ import (
 	"os"
 )
 
-const TransmissionBufferSize int = 1024 * 1024 //1MiB
-
 const DefaultPort = "29192" //randomly selected port, usually free
 
 var portFlag = &cli.StringFlag{
@@ -32,12 +30,20 @@ var destDirFlag = &cli.StringFlag{
 	Usage:   "saving directory",
 }
 
+var bufferFlag = &cli.IntFlag{
+	Name:    "buffer-size",
+	Aliases: []string{"bs"},
+	Value:   1048576,
+	Usage:   "r/w buffer size",
+}
+
 func main() {
 	cmd := &cli.App{
 		Name:      "pft",
 		Usage:     "TCP file sender/receiver",
 		UsageText: "pft command [command options] [files...]",
-		Version:   "v0.4.0",
+		Version:   "v0.4.0-develop",
+		Flags: []cli.Flag{bufferFlag},
 		Commands: []*cli.Command{
 			{
 				Name:      "hs",
@@ -96,7 +102,8 @@ func HostSend(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	} else {
-		return sendFiles(files, conn)
+		defer conn.Close()
+		return sendFiles(files, conn, ctx.Int("buffer-size"))
 	}
 
 }
@@ -114,7 +121,8 @@ func HostReceive(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	} else {
-		return getFiles(ctx.String("destdir"), conn)
+		defer conn.Close()
+		return getFiles(ctx.String("destdir"), conn, ctx.Int("buffer-size"))
 	}
 }
 
@@ -128,7 +136,8 @@ func ClientSend(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return sendFiles(files, conn)
+	defer conn.Close()
+	return sendFiles(files, conn, ctx.Int("buffer-size"))
 }
 
 func ClientReceive(ctx *cli.Context) error {
@@ -136,5 +145,6 @@ func ClientReceive(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return getFiles(ctx.String("destdir"), conn)
+	defer conn.Close()
+	return getFiles(ctx.String("destdir"), conn, ctx.Int("buffer-size"))
 }

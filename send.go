@@ -8,8 +8,7 @@ import (
 	"os"
 )
 
-func sendFiles(names []string, conn io.ReadWriteCloser) error {
-	defer conn.Close()
+func sendFiles(names []string, conn io.ReadWriter, bufSize int) error {
 	filesOpen, filesNames, err := halalizeFileName(names)
 	if err != nil {
 		return err
@@ -19,7 +18,7 @@ func sendFiles(names []string, conn io.ReadWriteCloser) error {
 	if err != nil {
 		return err
 	}
-	sendBuf := make([]byte, TransmissionBufferSize)
+	sendBuf := make([]byte, bufSize)
 
 	for i, filepath := range filesOpen {
 		err := func() error {
@@ -48,8 +47,8 @@ func sendFiles(names []string, conn io.ReadWriteCloser) error {
 			writer := io.MultiWriter(hashWriter, conn)
 
 			for remaining > 0 {
-				var msg_size int = TransmissionBufferSize
-				if remaining < int64(TransmissionBufferSize) {
+				var msg_size int = bufSize
+				if remaining < int64(bufSize) {
 					msg_size = int(remaining)
 				}
 
