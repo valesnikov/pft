@@ -129,3 +129,29 @@ func halalizeFileName(names []string) (forOpen, forSend []string, err error) {
 
 	return forOpen, forSend, nil
 }
+
+var bufSizeTemplate = regexp.MustCompile(`^\d+[KMG]?$`)
+var ErrBSWrongFormat = errors.New("buf size: wrong format, use {num}[K/M/G]")
+var ErrBSLarge = errors.New("buf size: size too large ")
+
+func bufSizeToNum(size string) (int, error) {
+	if len(bufSizeTemplate.FindString(size)) == 0 {
+		return 0, ErrBSWrongFormat
+	} //correct format
+	res := 0
+	mul := 'B'
+	fmt.Sscanf(size, "%d%c", &res, &mul)
+	//fmt.Printf("%d-%c\n", res, mul)
+	switch mul {
+	case 'B':
+		res *= 1
+	case 'K':
+		res *= 1024
+	case 'M':
+		res *= 1024*1024
+	case 'G':
+		res *= 1024*1024*1024
+	}
+
+	return res, nil
+}

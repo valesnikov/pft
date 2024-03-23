@@ -47,3 +47,40 @@ func Test_checkHeaders(t *testing.T) {
 		})
 	}
 }
+
+func Test_bufSizeToNum(t *testing.T) {
+	type args struct {
+		size string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    int
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+		{"1", args{"1"}, 1, false},
+		{"2", args{"92345678"}, 92345678, false},
+		{"3", args{"2K"}, 2 * 1024, false},
+		{"4", args{"642K"}, 642 * 1024, false},
+		{"5", args{"3M"}, 3 * 1024 * 1024, false},
+		{"6", args{"54M"}, 54 * 1024 * 1024, false},
+		{"7", args{"2G"}, 2 * 1024 * 1024 * 1024, false},
+		{"8", args{"1T"}, 0, true},
+		{"9", args{"shue"}, 0, true},
+		{"10", args{"1D"}, 0, true},
+		{"11", args{"-212"}, 0, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := bufSizeToNum(tt.args.size)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("bufSizeToNum() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("bufSizeToNum() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

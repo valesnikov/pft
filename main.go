@@ -30,10 +30,10 @@ var destDirFlag = &cli.StringFlag{
 	Usage:   "saving directory",
 }
 
-var bufferFlag = &cli.IntFlag{
+var bufferFlag = &cli.StringFlag{
 	Name:    "buffer-size",
-	Aliases: []string{"bs"},
-	Value:   1048576,
+	Aliases: []string{"b"},
+	Value:   "256K",
 	Usage:   "r/w buffer size",
 }
 
@@ -103,7 +103,11 @@ func HostSend(ctx *cli.Context) error {
 		return err
 	} else {
 		defer conn.Close()
-		return sendFiles(files, conn, ctx.Int("buffer-size"))
+		size, err := bufSizeToNum(ctx.String("buffer-size"))
+		if err != nil {
+			return err
+		}
+		return sendFiles(files, conn, size)
 	}
 
 }
@@ -122,7 +126,11 @@ func HostReceive(ctx *cli.Context) error {
 		return err
 	} else {
 		defer conn.Close()
-		return getFiles(ctx.String("destdir"), conn, ctx.Int("buffer-size"))
+		size, err := bufSizeToNum(ctx.String("buffer-size"))
+		if err != nil {
+			return err
+		}
+		return getFiles(ctx.String("destdir"), conn, size)
 	}
 }
 
@@ -137,7 +145,11 @@ func ClientSend(ctx *cli.Context) error {
 		return err
 	}
 	defer conn.Close()
-	return sendFiles(files, conn, ctx.Int("buffer-size"))
+	size, err := bufSizeToNum(ctx.String("buffer-size"))
+	if err != nil {
+		return err
+	}
+	return sendFiles(files, conn, size)
 }
 
 func ClientReceive(ctx *cli.Context) error {
@@ -146,5 +158,9 @@ func ClientReceive(ctx *cli.Context) error {
 		return err
 	}
 	defer conn.Close()
-	return getFiles(ctx.String("destdir"), conn, ctx.Int("buffer-size"))
+	size, err := bufSizeToNum(ctx.String("buffer-size"))
+	if err != nil {
+		return err
+	}
+	return getFiles(ctx.String("destdir"), conn, size)
 }
