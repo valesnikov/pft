@@ -64,4 +64,9 @@ func progressBar(progress float64, cellNumber int, roundPrec int) string {
 	return res
 }
 
+func cleanLine() error {
+	_, err := fmt.Print("\033[2K\r")
+	return err
+}
+
 // [#####     ] 50%

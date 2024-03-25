@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"regexp"
@@ -106,10 +107,21 @@ func halalizeFileName(names []string) (forOpen, forSend []string, err error) {
 				return err
 			}
 			for _, entry := range entries {
-				err := addEntry(path.Join(fullPath, entry.Name()), path.Join(name, entry.Name()))
+				if entry.Type() == fs.ModeSymlink {
+					_, err = os.Stat(path.Join(fullPath, entry.Name()))
+					if err != nil {
+						fmt.Println("ignore broken symlink:", path.Join(fullPath, entry.Name()))
+						err = nil
+					} else {
+						err = addEntry(path.Join(fullPath, entry.Name()), path.Join(name, entry.Name()))
+					}
+				} else {
+					err = addEntry(path.Join(fullPath, entry.Name()), path.Join(name, entry.Name()))
+				}
 				if err != nil {
 					return err
 				}
+
 			}
 		}
 		return nil
@@ -148,9 +160,9 @@ func bufSizeToNum(size string) (int, error) {
 	case 'K':
 		res *= 1024
 	case 'M':
-		res *= 1024*1024
+		res *= 1024 * 1024
 	case 'G':
-		res *= 1024*1024*1024
+		res *= 1024 * 1024 * 1024
 	}
 
 	return res, nil

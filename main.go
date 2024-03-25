@@ -7,12 +7,10 @@ import (
 	"os"
 )
 
-const DefaultPort = "29192" //randomly selected port, usually free
-
 var portFlag = &cli.StringFlag{
 	Name:    "port",
 	Aliases: []string{"p"},
-	Value:   DefaultPort,
+	Value:   "29192", //randomly selected port, usually free
 	Usage:   "network port for transmission",
 }
 
@@ -43,7 +41,7 @@ func main() {
 		Usage:     "TCP file sender/receiver",
 		UsageText: "pft command [command options] [files...]",
 		Version:   "v0.4.0-develop",
-		Flags: []cli.Flag{bufferFlag},
+		Flags:     []cli.Flag{bufferFlag},
 		Commands: []*cli.Command{
 			{
 				Name:      "hs",

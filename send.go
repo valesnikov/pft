@@ -68,7 +68,7 @@ func sendFiles(names []string, conn io.ReadWriter, bufSize int) error {
 				remaining -= int64(msg_size)
 				if 100-(remaining*100)/int64(header.Size) != percentage {
 					percentage = 100 - (remaining*100)/int64(header.Size)
-					fmt.Print("\033[2K\r")
+					cleanLine()
 					printLine(filepath, float64(percentage))
 				}
 			}

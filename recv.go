@@ -69,7 +69,7 @@ func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 				remaining -= uint64(nRead)
 				if int64(100-(remaining*100)/header.Size) != percentage {
 					percentage = int64(100 - (remaining*100)/header.Size)
-					fmt.Print("\033[2K\r")
+					cleanLine()
 					printLine(fileName, float64(percentage))
 				}
 			}
