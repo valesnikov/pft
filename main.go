@@ -42,7 +42,7 @@ func main() {
 		Name:      "pft",
 		Usage:     "TCP file sender/receiver",
 		UsageText: "pft command [command options] [files...]",
-		Version:   "v0.4.0-develop",
+		Version:   "v0.4.1",
 		Flags:     []cli.Flag{bufferFlag},
 		Commands: []*cli.Command{
 			{
@@ -96,11 +96,7 @@ func HostSend(ctx *cli.Context) error {
 	}
 	defer ln.Close()
 
-	addrs, err := getLocalIPs()
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Start listener on %v:%v\n", addrs, ctx.String("port"))
+	fmt.Printf("Start listener on %v:%v\n", getLocalIPs(), ctx.String("port"))
 
 	conn, err := ln.Accept()
 	if err != nil {
@@ -123,11 +119,7 @@ func HostReceive(ctx *cli.Context) error {
 	}
 	defer ln.Close()
 
-	addrs, err := getLocalIPs()
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Start listener on %v:%v\n", addrs, ctx.String("port"))
+	fmt.Printf("Start listener on %v:%v\n", getLocalIPs(), ctx.String("port"))
 
 	conn, err := ln.Accept()
 	if err != nil {

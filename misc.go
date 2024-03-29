@@ -169,12 +169,12 @@ func bufSizeToNum(size string) (int, error) {
 	return res, nil
 }
 
-func getLocalIPs() ([]string, error) {
+func getLocalIPs() []string {
+	res := make([]string,0,1)
     addrs, err := net.InterfaceAddrs()
     if err != nil {
-        return nil, err
+        return res
     }
-	res := make([]string,0,1)
     for _, address := range addrs {
 		ipnet, ok := address.(*net.IPNet);
         if ok && !ipnet.IP.IsLoopback() {
@@ -183,5 +183,5 @@ func getLocalIPs() ([]string, error) {
             }
         }
     }
-	return res, nil
+	return res
 }
