@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"net"
 )
 
 /*
@@ -165,5 +166,22 @@ func bufSizeToNum(size string) (int, error) {
 		res *= 1024 * 1024 * 1024
 	}
 
+	return res, nil
+}
+
+func getLocalIPs() ([]string, error) {
+    addrs, err := net.InterfaceAddrs()
+    if err != nil {
+        return nil, err
+    }
+	res := make([]string,0,1)
+    for _, address := range addrs {
+		ipnet, ok := address.(*net.IPNet);
+        if ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+                res = append(res, ipnet.IP.String())
+            }
+        }
+    }
 	return res, nil
 }

@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli/v2"
 	"net"
 	"os"
+	"time"
+
+	"github.com/urfave/cli/v2"
 )
 
 var portFlag = &cli.StringFlag{
@@ -94,7 +96,11 @@ func HostSend(ctx *cli.Context) error {
 	}
 	defer ln.Close()
 
-	fmt.Printf("Start listener on %v port\n", ctx.String("port"))
+	addrs, err := getLocalIPs()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Start listener on %v:%v\n", addrs, ctx.String("port"))
 
 	conn, err := ln.Accept()
 	if err != nil {
@@ -117,7 +123,11 @@ func HostReceive(ctx *cli.Context) error {
 	}
 	defer ln.Close()
 
-	fmt.Printf("Start listener on %v port\n", ctx.String("port"))
+	addrs, err := getLocalIPs()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Start listener on %v:%v\n", addrs, ctx.String("port"))
 
 	conn, err := ln.Accept()
 	if err != nil {
@@ -138,10 +148,18 @@ func ClientSend(ctx *cli.Context) error {
 		files[i] = ctx.Args().Get(i)
 	}
 
+	fmt.Printf("Awaiting connection to %v:%v", ctx.String("address"), ctx.String("port"))
+	fmt.Println("")
+	RETRY:
 	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
 	if err != nil {
-		return err
+		cleanLine()
+		fmt.Print(err)
+		time.Sleep(250 * time.Millisecond)
+		goto RETRY
 	}
+	defer conn.Close()
+
 	defer conn.Close()
 	size, err := bufSizeToNum(ctx.String("buffer-size"))
 	if err != nil {
@@ -151,11 +169,18 @@ func ClientSend(ctx *cli.Context) error {
 }
 
 func ClientReceive(ctx *cli.Context) error {
+	fmt.Printf("Awaiting connection to %v:%v", ctx.String("address"), ctx.String("port"))
+	fmt.Println("")
+	RETRY:
 	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
 	if err != nil {
-		return err
+		cleanLine()
+		fmt.Print(err)
+		time.Sleep(250 * time.Millisecond)
+		goto RETRY
 	}
 	defer conn.Close()
+
 	size, err := bufSizeToNum(ctx.String("buffer-size"))
 	if err != nil {
 		return err
