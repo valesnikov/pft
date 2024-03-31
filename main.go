@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 	"time"
-
+	"errors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -37,45 +37,51 @@ var bufferFlag = &cli.StringFlag{
 	Usage:   "r/w buffer size",
 }
 
+var mkdirFlag = &cli.BoolFlag{
+	Name: "mkdir",
+	Aliases: []string{"m"},
+	Value: false,
+	Usage: "сreate destdir if it does not exist",
+}
+
 func main() {
 	cmd := &cli.App{
 		Name:      "pft",
 		Usage:     "TCP file sender/receiver",
-		UsageText: "pft command [command options] [files...]",
-		Version:   "v0.4.1",
-		Flags:     []cli.Flag{bufferFlag},
+		UsageText: "pft [global options] command [command options] [files...]",
+		Version:   "v0.4.1-develop",
+		Flags:     []cli.Flag{bufferFlag, portFlag},
 		Commands: []*cli.Command{
 			{
-				Name:      "hs",
-				Aliases:   []string{"sh", "host-send"},
+				Name:      "host-send",
+				Aliases:   []string{"hs", "sh"},
 				Usage:     "sending files as a host",
 				UsageText: "pft hs [options] [files...]",
 				Action:    HostSend,
-				Flags:     []cli.Flag{portFlag},
 			},
 			{
-				Name:      "hr",
-				Aliases:   []string{"rh", "host-receive"},
+				Name:      "host-receive",
+				Aliases:   []string{"hr", "rh"},
 				Usage:     "receiving files as a host",
 				UsageText: "pft hr [options]",
 				Action:    HostReceive,
-				Flags:     []cli.Flag{portFlag, destDirFlag},
+				Flags:     []cli.Flag{destDirFlag, mkdirFlag},
 			},
 			{
-				Name:      "cs",
-				Aliases:   []string{"sc", "client-send"},
+				Name:      "client-send",
+				Aliases:   []string{"cs", "sc"},
 				Usage:     "sending files as a client",
 				UsageText: "pft cs [options] [files...]",
 				Action:    ClientSend,
-				Flags:     []cli.Flag{portFlag, addrFlag},
+				Flags:     []cli.Flag{addrFlag},
 			},
 			{
-				Name:      "cr",
-				Aliases:   []string{"rc", "client-receive"},
+				Name:      "client-receive",
+				Aliases:   []string{"cr", "rc"},
 				Usage:     "receiving files as a client",
 				UsageText: "pft cr [options]",
 				Action:    ClientReceive,
-				Flags:     []cli.Flag{portFlag, addrFlag, destDirFlag},
+				Flags:     []cli.Flag{addrFlag, destDirFlag, mkdirFlag},
 			},
 		},
 	}
@@ -130,6 +136,21 @@ func HostReceive(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
+
+		_, err = os.Stat(ctx.String("destdir"));
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) && ctx.Bool("mkdir") {
+				err = os.MkdirAll(ctx.String("destdir"), 0755)
+				if err != nil {
+					return err
+				} else {
+					fmt.Printf("Create \"%s\" directory\n", ctx.String("destdir"))
+				}
+			} else {
+				return err
+			}
+		}
+		
 		return getFiles(ctx.String("destdir"), conn, size)
 	}
 }
@@ -142,7 +163,7 @@ func ClientSend(ctx *cli.Context) error {
 
 	fmt.Printf("Awaiting connection to %v:%v", ctx.String("address"), ctx.String("port"))
 	fmt.Println("")
-	RETRY:
+RETRY:
 	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
 	if err != nil {
 		cleanLine()
@@ -163,7 +184,7 @@ func ClientSend(ctx *cli.Context) error {
 func ClientReceive(ctx *cli.Context) error {
 	fmt.Printf("Awaiting connection to %v:%v", ctx.String("address"), ctx.String("port"))
 	fmt.Println("")
-	RETRY:
+RETRY:
 	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
 	if err != nil {
 		cleanLine()
@@ -176,6 +197,19 @@ func ClientReceive(ctx *cli.Context) error {
 	size, err := bufSizeToNum(ctx.String("buffer-size"))
 	if err != nil {
 		return err
+	}
+	_, err = os.Stat(ctx.String("destdir"));
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) && ctx.Bool("mkdir") {
+			err = os.MkdirAll(ctx.String("destdir"), 0755)
+			if err != nil {
+				return err
+			} else {
+				fmt.Printf("Create \"%s\" directory\n", ctx.String("destdir"))
+			}
+		} else {
+			return err
+		}
 	}
 	return getFiles(ctx.String("destdir"), conn, size)
 }

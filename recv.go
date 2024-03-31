@@ -33,7 +33,7 @@ func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 
 			dir, _ := path.Split(fileName)
 			if dir != "" {
-				os.MkdirAll(dir, 0777)
+				os.MkdirAll(dir, 0755)
 			}
 
 			file, err := os.Create(tmpName)
