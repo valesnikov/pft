@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	crnd "crypto/rand"
 	"fmt"
 	"math/rand"
 	"net"
@@ -35,7 +34,7 @@ func Test_SendAndReceive(t *testing.T) {
 			panic(err)
 		}
 		b := make([]byte, rand.Int()%maxSizeB)
-		_, err = crnd.Read(b)
+		_, err = rand.Read(b)
 		if err != nil {
 			panic(err)
 		}

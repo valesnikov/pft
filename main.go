@@ -1,12 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"github.com/urfave/cli/v2"
 	"net"
 	"os"
 	"time"
-	"errors"
-	"github.com/urfave/cli/v2"
 )
 
 var portFlag = &cli.StringFlag{
@@ -38,10 +38,10 @@ var bufferFlag = &cli.StringFlag{
 }
 
 var mkdirFlag = &cli.BoolFlag{
-	Name: "mkdir",
+	Name:    "mkdir",
 	Aliases: []string{"m"},
-	Value: false,
-	Usage: "сreate destdir if it does not exist",
+	Value:   false,
+	Usage:   "сreate destdir if it does not exist",
 }
 
 func main() {
@@ -137,7 +137,7 @@ func HostReceive(ctx *cli.Context) error {
 			return err
 		}
 
-		_, err = os.Stat(ctx.String("destdir"));
+		_, err = os.Stat(ctx.String("destdir"))
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) && ctx.Bool("mkdir") {
 				err = os.MkdirAll(ctx.String("destdir"), 0755)
@@ -150,7 +150,7 @@ func HostReceive(ctx *cli.Context) error {
 				return err
 			}
 		}
-		
+
 		return getFiles(ctx.String("destdir"), conn, size)
 	}
 }
@@ -198,7 +198,7 @@ RETRY:
 	if err != nil {
 		return err
 	}
-	_, err = os.Stat(ctx.String("destdir"));
+	_, err = os.Stat(ctx.String("destdir"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) && ctx.Bool("mkdir") {
 			err = os.MkdirAll(ctx.String("destdir"), 0755)
