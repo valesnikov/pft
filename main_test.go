@@ -63,6 +63,7 @@ func Test_SendAndReceive(t *testing.T) {
 		t.Error(rErr)
 		return
 	}
+
 	sErr := <-errChn
 	if sErr != nil {
 		t.Error(sErr)

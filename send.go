@@ -7,9 +7,16 @@ import (
 	"os"
 
 	"github.com/cespare/xxhash/v2"
+	"github.com/klauspost/compress/zstd"
 )
 
 func sendFiles(names []string, conn io.Writer, bufSize int) error {
+	zconn, err := zstd.NewWriter(conn, zstd.WithEncoderLevel(zstd.SpeedFastest))
+	if err != nil {
+		return err
+	}
+	defer zconn.Close()
+
 	filesOpen, filesNames, err := prepareFileNames(names)
 	if err != nil {
 		return err
@@ -26,7 +33,7 @@ func sendFiles(names []string, conn io.Writer, bufSize int) error {
 			}
 			header.Name = filesNames[i]
 
-			_, err = conn.Write(header.Serialize())
+			_, err = zconn.Write(header.Serialize())
 			if err != nil {
 				return err
 			}
@@ -42,7 +49,7 @@ func sendFiles(names []string, conn io.Writer, bufSize int) error {
 			defer file.Close()
 
 			hashWriter := xxhash.New()
-			writer := io.MultiWriter(hashWriter, conn)
+			writer := io.MultiWriter(hashWriter, zconn)
 
 			if remaining == 0 {
 				printLine(filepath, 100)
@@ -78,8 +85,7 @@ func sendFiles(names []string, conn io.Writer, bufSize int) error {
 			hashBuf := [8]byte{}
 			binary.BigEndian.PutUint64(hashBuf[:], hashWriter.Sum64())
 
-			//fmt.Println(filepath, remaining, header, hashBuf)
-			_, err = conn.Write(hashBuf[:])
+			_, err = zconn.Write(hashBuf[:])
 			if err != nil {
 				return err
 			}
@@ -96,7 +102,7 @@ func sendFiles(names []string, conn io.Writer, bufSize int) error {
 		Size: 0,
 		Name: "",
 	}
-	_, err = conn.Write(nullHeader.Serialize())
+	_, err = zconn.Write(nullHeader.Serialize())
 	if err != nil {
 		return err
 	}

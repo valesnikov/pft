@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0
+	github.com/klauspost/compress v1.17.7
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/term v0.19.0
 )

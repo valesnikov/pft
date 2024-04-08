@@ -3,19 +3,27 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/cespare/xxhash/v2"
 	"io"
 	"os"
 	"path"
+
+	"github.com/cespare/xxhash/v2"
+	"github.com/klauspost/compress/zstd"
 )
 
-func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
+func getFiles(destDir string, conn io.Reader, bufSize int) error {
+	zconn, err := zstd.NewReader(conn)
+	if err != nil {
+		return err
+	}
+	defer func() { go zconn.Close() }() //may be blocked
+
 	recvBuf := make([]byte, bufSize)
 	fmt.Println("Started receiving")
 
 	for {
 		done, err := func() (bool, error) {
-			header, err := ReadFileHeader(conn)
+			header, err := ReadFileHeader(zconn)
 			if err != nil {
 				return false, err
 			}
@@ -27,7 +35,10 @@ func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 			tmpName := fileName + ".pft_tmp"
 
 			dir, _ := path.Split(fileName)
-			checkDirExist(dir, true)
+			err = checkDirExist(dir, true)
+			if err != nil {
+				return false, err
+			}
 
 			file, err := os.Create(tmpName)
 			if err != nil {
@@ -51,7 +62,7 @@ func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 					msg_size = int(remaining)
 				}
 
-				nRead, err := conn.Read(recvBuf[:msg_size])
+				nRead, err := zconn.Read(recvBuf[:msg_size])
 				if err != nil {
 					file.Close()
 					return false, err
@@ -75,7 +86,7 @@ func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 
 			hash := hashWriter.Sum64()
 			hashBuf := [8]byte{}
-			_, err = io.ReadFull(conn, hashBuf[:])
+			_, err = io.ReadFull(zconn, hashBuf[:])
 			if err != nil {
 				return false, err
 			}
@@ -102,6 +113,7 @@ func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 			break
 		}
 	}
+
 	fmt.Println("Finished receiving")
 	return nil
 }
