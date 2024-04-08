@@ -1,12 +1,9 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/urfave/cli/v2"
-	"net"
 	"os"
-	"time"
 )
 
 var portFlag = &cli.StringFlag{
@@ -96,63 +93,49 @@ func HostSend(ctx *cli.Context) error {
 		files[i] = ctx.Args().Get(i)
 	}
 
-	ln, err := net.Listen("tcp", ":"+ctx.String("port"))
+	conn, err := connectHost(ctx.String("port"))
 	if err != nil {
 		return err
 	}
-	defer ln.Close()
 
-	fmt.Printf("Start listener on %v:%v\n", getLocalIPs(), ctx.String("port"))
-
-	conn, err := ln.Accept()
+	defer conn.Close()
+	size, err := bufSizeToNum(ctx.String("buffer-size"))
 	if err != nil {
 		return err
-	} else {
-		defer conn.Close()
-		size, err := bufSizeToNum(ctx.String("buffer-size"))
-		if err != nil {
-			return err
-		}
-		return sendFiles(files, conn, size)
 	}
 
+	err = checkHeaders(SND_HEADER, conn)
+	if err != nil {
+		return err
+	}
+
+	return sendFiles(files, conn, size)
 }
 
 func HostReceive(ctx *cli.Context) error {
-	ln, err := net.Listen("tcp", ":"+ctx.String("port"))
+	conn, err := connectHost(ctx.String("port"))
 	if err != nil {
 		return err
 	}
-	defer ln.Close()
+	defer conn.Close()
 
-	fmt.Printf("Start listener on %v:%v\n", getLocalIPs(), ctx.String("port"))
-
-	conn, err := ln.Accept()
+	size, err := bufSizeToNum(ctx.String("buffer-size"))
 	if err != nil {
 		return err
-	} else {
-		defer conn.Close()
-		size, err := bufSizeToNum(ctx.String("buffer-size"))
-		if err != nil {
-			return err
-		}
-
-		_, err = os.Stat(ctx.String("destdir"))
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) && ctx.Bool("mkdir") {
-				err = os.MkdirAll(ctx.String("destdir"), 0755)
-				if err != nil {
-					return err
-				} else {
-					fmt.Printf("Create \"%s\" directory\n", ctx.String("destdir"))
-				}
-			} else {
-				return err
-			}
-		}
-
-		return getFiles(ctx.String("destdir"), conn, size)
 	}
+
+	err = checkDirExist(ctx.String("destdir"), ctx.Bool("mkdir"))
+	if err != nil {
+		return err
+	}
+
+	err = checkHeaders(RCV_HEADER, conn)
+	if err != nil {
+		return err
+	}
+
+	return getFiles(ctx.String("destdir"), conn, size)
+
 }
 
 func ClientSend(ctx *cli.Context) error {
@@ -161,36 +144,30 @@ func ClientSend(ctx *cli.Context) error {
 		files[i] = ctx.Args().Get(i)
 	}
 
-	fmt.Printf("Awaiting connection to %v:%v", ctx.String("address"), ctx.String("port"))
-	fmt.Println("")
-RETRY:
-	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
+	conn, err := connectClient(ctx.String("address"), ctx.String("port"))
 	if err != nil {
-		cleanLine()
-		fmt.Print(err)
-		time.Sleep(250 * time.Millisecond)
-		goto RETRY
+		return err
 	}
 	defer conn.Close()
 
-	defer conn.Close()
 	size, err := bufSizeToNum(ctx.String("buffer-size"))
 	if err != nil {
 		return err
 	}
+
+	err = checkHeaders(SND_HEADER, conn)
+	if err != nil {
+		return err
+	}
+
 	return sendFiles(files, conn, size)
 }
 
 func ClientReceive(ctx *cli.Context) error {
-	fmt.Printf("Awaiting connection to %v:%v", ctx.String("address"), ctx.String("port"))
-	fmt.Println("")
-RETRY:
-	conn, err := net.Dial("tcp", ctx.String("address")+":"+ctx.String("port"))
+
+	conn, err := connectClient(ctx.String("address"), ctx.String("port"))
 	if err != nil {
-		cleanLine()
-		fmt.Print(err)
-		time.Sleep(250 * time.Millisecond)
-		goto RETRY
+		return err
 	}
 	defer conn.Close()
 
@@ -198,18 +175,16 @@ RETRY:
 	if err != nil {
 		return err
 	}
-	_, err = os.Stat(ctx.String("destdir"))
+
+	err = checkDirExist(ctx.String("destdir"), ctx.Bool("mkdir"))
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) && ctx.Bool("mkdir") {
-			err = os.MkdirAll(ctx.String("destdir"), 0755)
-			if err != nil {
-				return err
-			} else {
-				fmt.Printf("Create \"%s\" directory\n", ctx.String("destdir"))
-			}
-		} else {
-			return err
-		}
+		return err
 	}
+
+	err = checkHeaders(RCV_HEADER, conn)
+	if err != nil {
+		return err
+	}
+
 	return getFiles(ctx.String("destdir"), conn, size)
 }

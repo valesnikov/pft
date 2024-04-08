@@ -13,7 +13,7 @@ func (b *Buf) read(p []byte) int {
 		}
 	}
 	num := copy(p[n:], b.d[b.r: b.w])
-	b.r += num
+	b.r = (b.r + num) % len(b.d)
 	n += num
 	b.len -= num
 	return n
@@ -29,7 +29,7 @@ RECHECK:
 			return 0, b.err
 		}
 		b.m.Unlock()
-		for b.len == 0 {
+		for b.len == 0 && b.err == nil {
 			runtime.Gosched()
 		}
 		b.m.Lock()

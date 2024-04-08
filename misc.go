@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"regexp"
-	"net"
 )
 
 /*
@@ -38,29 +37,15 @@ var ErrNoHeader = errors.New("check headers: failed to receive or send the heade
 func checkHeaders(header [HEADER_SIZE]byte, conn io.ReadWriter) error {
 	var hdr = [HEADER_SIZE]byte{}
 
-	if header == SND_HEADER {
-		_, err := conn.Write(header[:]) //send header
-		if err != nil {
-			fmt.Println(err)
-			return ErrNoHeader
-		}
-		_, err = io.ReadFull(conn, hdr[:])
-		if err != nil {
-			fmt.Println(err)
-			return ErrNoHeader
-		}
-	} else if header == RCV_HEADER {
-		_, err := io.ReadFull(conn, hdr[:])
-		if err != nil {
-			fmt.Println(err)
-			return ErrNoHeader
-		}
-
-		_, err = conn.Write(header[:]) //send header
-		if err != nil {
-			fmt.Println(err)
-			return ErrNoHeader
-		}
+	_, err := conn.Write(header[:]) //send header
+	if err != nil {
+		fmt.Println(err)
+		return ErrNoHeader
+	}
+	_, err = io.ReadFull(conn, hdr[:])
+	if err != nil {
+		fmt.Println(err)
+		return ErrNoHeader
 	}
 
 	if len(headerTemplate.Find(hdr[:])) == 0 {
@@ -89,7 +74,7 @@ func checkHeaders(header [HEADER_SIZE]byte, conn io.ReadWriter) error {
 /a/b/c.d to  c.d
 /e/g/f 	 to  f/a.c, f/b.d, f/g.n
 */
-func halalizeFileName(names []string) (forOpen, forSend []string, err error) {
+func prepareFileNames(names []string) (forOpen, forSend []string, err error) {
 	forOpen = make([]string, 0, len(names))
 	forSend = make([]string, 0, len(names))
 
@@ -169,19 +154,19 @@ func bufSizeToNum(size string) (int, error) {
 	return res, nil
 }
 
-func getLocalIPs() []string {
-	res := make([]string,0,1)
-    addrs, err := net.InterfaceAddrs()
-    if err != nil {
-        return res
-    }
-    for _, address := range addrs {
-		ipnet, ok := address.(*net.IPNet);
-        if ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-                res = append(res, ipnet.IP.String())
-            }
-        }
-    }
-	return res
+func checkDirExist(name string, create bool) error {
+	_, err := os.Stat(name)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) && create {
+			err = os.MkdirAll(name, 0755)
+			if err != nil {
+				return err
+			} else {
+				fmt.Printf("Create \"%s\" directory\n", name)
+			}
+		} else {
+			return err
+		}
+	}
+	return nil
 }

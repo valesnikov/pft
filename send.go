@@ -3,21 +3,18 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/cespare/xxhash/v2"
 	"io"
 	"os"
+
+	"github.com/cespare/xxhash/v2"
 )
 
-func sendFiles(names []string, conn io.ReadWriter, bufSize int) error {
-	filesOpen, filesNames, err := halalizeFileName(names)
+func sendFiles(names []string, conn io.Writer, bufSize int) error {
+	filesOpen, filesNames, err := prepareFileNames(names)
 	if err != nil {
 		return err
 	}
 
-	err = checkHeaders(SND_HEADER, conn)
-	if err != nil {
-		return err
-	}
 	sendBuf := make([]byte, bufSize)
 
 	for i, filepath := range filesOpen {
@@ -35,6 +32,7 @@ func sendFiles(names []string, conn io.ReadWriter, bufSize int) error {
 			}
 
 			remaining := int64(header.Size)
+
 			percentage := int64(-1)
 
 			file, err := os.Open(filepath)
@@ -45,6 +43,10 @@ func sendFiles(names []string, conn io.ReadWriter, bufSize int) error {
 
 			hashWriter := xxhash.New()
 			writer := io.MultiWriter(hashWriter, conn)
+
+			if remaining == 0 {
+				printLine(filepath, 100)
+			}
 
 			for remaining > 0 {
 				var msg_size int = bufSize
@@ -75,6 +77,8 @@ func sendFiles(names []string, conn io.ReadWriter, bufSize int) error {
 
 			hashBuf := [8]byte{}
 			binary.BigEndian.PutUint64(hashBuf[:], hashWriter.Sum64())
+
+			//fmt.Println(filepath, remaining, header, hashBuf)
 			_, err = conn.Write(hashBuf[:])
 			if err != nil {
 				return err

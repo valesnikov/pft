@@ -2,8 +2,9 @@ package buf
 
 import (
 	"bytes"
+	"crypto/rand"
+	"fmt"
 	"io"
-	"math/rand"
 	"testing"
 )
 
@@ -70,34 +71,71 @@ func Test_Overflow(t *testing.T) {
 	}
 }
 
-func Test_Close(t *testing.T) {
-	const size = 16
-	b := New(size)
+func Test_Reader(t *testing.T) {
+	const size = 4096
 	d := make([]byte, size)
 	rand.Read(d)
-	n, err := b.Write(d)
-	if err != nil {
-		t.Errorf("buf.Write(d), len(d)=%v, error = %v\n", len(d), err)
-	}
-	if n != len(d) {
-		t.Errorf("buf.Write(d), len(d)=%v, n = %v\n", len(d), n)
-	}
 
-	b.Close()
-	td := make([]byte, size)
-	n, err = b.Read(td)
+	r := NewReader(bytes.NewReader(d))
+
+	td, err := io.ReadAll(r)
 	if err != nil {
-		t.Errorf("buf.Read(td), len(td)=%v, error = %v\n", len(td), err)
-	}
-	if n != len(d) {
-		t.Errorf("buf.Read(td), len(td)=%v, n = %v\n", len(td), n)
+		t.Errorf("error = %v\n", err)
 	}
 	if !bytes.Equal(d, td) {
 		t.Errorf("data dont match size=%v\n", size)
 	}
+}
 
-	_, err = b.Read(td)
-	if err != io.EOF {
-		t.Errorf("Unexpected err = \"%v\", want err = io.EOF\n", err)
+func Test_Writer(t *testing.T) {
+	const size = 4096
+	d := make([]byte, size)
+	rand.Read(d)
+
+	bb := bytes.NewBuffer([]byte{})
+	w := NewWriter(bb)
+
+	_, err := w.Write(d)
+	if err != nil {
+		t.Errorf("error = %v\n", err)
 	}
+	w.Close()
+	td, err := io.ReadAll(bb)
+	if err != nil {
+		t.Errorf("error = %v\n", err)
+	}
+	if !bytes.Equal(d, td) {
+		t.Errorf("data dont match size=%v\n", size)
+		fmt.Println(d, td)
+	}
+}
+
+func Test_SmallBlock(t *testing.T) {
+	const bsize = 137
+	const dsize = 17
+	b := New(bsize)
+	d := make([]byte, dsize)
+	td := make([]byte, dsize)
+	for i := 0; i < 1000; i++ {
+		rand.Read(d)
+		n, err := b.Write(d)
+		if err != nil {
+			t.Errorf("error = %v\n", err)
+		}
+		if n != len(d) {
+			t.Errorf("buf.Write(d), len(d)=%v, n = %v\n", len(d), n)
+		}
+		n, err = b.Read(td)
+		if err != nil {
+			t.Errorf("error = %v\n", err)
+		}
+		if n != len(td) {
+			t.Errorf("buf.Read(td), len(td)=%v, n = %v\n", len(td), n)
+		}
+		if !bytes.Equal(d, td) {
+			t.Errorf("data dont match\n",)
+			fmt.Println(d, td)
+		}
+	}
+
 }

@@ -13,7 +13,7 @@ func (b *Buf) write(p []byte) int {
 		}
 	}
 	num := copy(b.d[b.w: b.r], p[n:])
-	b.r += num
+	b.w = (b.w + num) % len(b.d)
 	n += num
 	b.len += num
 	return n
@@ -30,7 +30,7 @@ func (b *Buf) Write(p []byte) (n int, err error) {
 		}
 		if b.len == len(b.d) {
 			b.m.Unlock()
-			for b.len == len(b.d) {
+			for b.len == len(b.d) && b.err == nil{
 				runtime.Gosched()
 			}
 			b.m.Lock()

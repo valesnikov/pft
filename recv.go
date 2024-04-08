@@ -10,10 +10,6 @@ import (
 )
 
 func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
-	err := checkHeaders(RCV_HEADER, conn)
-	if err != nil {
-		return err
-	}
 	recvBuf := make([]byte, bufSize)
 	fmt.Println("Started receiving")
 
@@ -23,7 +19,6 @@ func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 			if err != nil {
 				return false, err
 			}
-
 			if header.Name == "" {
 				return true, nil //all files received
 			}
@@ -32,9 +27,7 @@ func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 			tmpName := fileName + ".pft_tmp"
 
 			dir, _ := path.Split(fileName)
-			if dir != "" {
-				os.MkdirAll(dir, 0755)
-			}
+			checkDirExist(dir, true)
 
 			file, err := os.Create(tmpName)
 			if err != nil {
@@ -47,6 +40,10 @@ func getFiles(destDir string, conn io.ReadWriter, bufSize int) error {
 
 			hashWriter := xxhash.New()
 			writer := io.MultiWriter(hashWriter, file)
+
+			if remaining == 0 {
+				printLine(fileName, 100)
+			}
 
 			for remaining > 0 {
 				var msg_size int = bufSize
