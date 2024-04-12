@@ -2,17 +2,19 @@ package main
 
 import (
 	"fmt"
-	"golang.org/x/term"
 	"math"
+	"os"
 	"strconv"
+
+	"golang.org/x/term"
 )
 
 func printLine(fileName string, proress float64) {
-	if !term.IsTerminal(0) {
+	if !term.IsTerminal(int(os.Stdout.Fd())) {
 		return
 	}
 
-	width, _, err := term.GetSize(0)
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if width < 35 {
 		width = 35
 	}
@@ -65,8 +67,9 @@ func progressBar(progress float64, cellNumber int, roundPrec int) string {
 }
 
 func cleanLine() error {
+	wrap_err := func (err error) error {return fmt.Errorf("clear line:\n%w", err)}
 	_, err := fmt.Print("\033[2K\r")
-	return err
+	return wrap_err(err)
 }
 
 // [#####     ] 50%

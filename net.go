@@ -7,9 +7,11 @@ import (
 )
 
 func connectHost(port string) (net.Conn, error) {
+	wrap_err := func (err error) error {return fmt.Errorf("connect host with on \"%s\" port:\n%w", port, err)}
+
 	ln, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		return nil, err
+		return nil, wrap_err(err)
 	}
 	defer ln.Close()
 
@@ -17,12 +19,14 @@ func connectHost(port string) (net.Conn, error) {
 
 	conn, err := ln.Accept()
 	if err != nil {
-		return nil, err
+		return nil, wrap_err(err)
 	}
 	return conn, nil
 }
 
 func connectClient(addr string, port string) (net.Conn, error) {
+	_ = func (err error) error {return fmt.Errorf("connect client to \"%s\" on \"%s\" port:\n%w", addr, port, err)}
+
 	fmt.Printf("Awaiting connection to %s:%s", addr, port)
 	fmt.Println("")
 RETRY:

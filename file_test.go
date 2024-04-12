@@ -46,11 +46,12 @@ func Test_NewFileHeader(t *testing.T) {
 		rightHeaders[i] = FileHeader{
 			Size: uint64(len(b)),
 			Name: fileNameBase,
+			Flags: 0,
 		}
 	}
 
 	for i := 0; i < fileNum; i++ {
-		header, err := MakeFileHeader(inFileNames[i])
+		header, err := MakeFileHeader(inFileNames[i], 0)
 		if err != nil {
 			panic(err)
 		}

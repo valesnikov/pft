@@ -123,7 +123,7 @@ func HostReceive(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
+	
 	err = checkDirExist(ctx.String("destdir"), ctx.Bool("mkdir"))
 	if err != nil {
 		return err

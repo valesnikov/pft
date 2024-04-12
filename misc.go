@@ -13,7 +13,8 @@ import (
 /*
 len(HEADER) byte - header
 while {filename size} != 0 {
-	8 byte - filename size
+	4 byte - flags //unused
+	4 byte - filename size
 	8 byte - file size
 	{filename size} byte - filename
 	{file size} byte - file
@@ -23,8 +24,8 @@ while {filename size} != 0 {
 
 const HEADER_SIZE = 8
 
-var SND_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x73, 0x30, 0x30, 0x34, 0x0a} //pfts004\n
-var RCV_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x72, 0x30, 0x30, 0x34, 0x0a} //pftr004\n
+var SND_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x73, 0x30, 0x30, 0x35, 0x0a} //pfts005\n
+var RCV_HEADER = [HEADER_SIZE]byte{0x70, 0x66, 0x74, 0x72, 0x30, 0x30, 0x35, 0x0a} //pftr005\n
 
 var headerTemplate = regexp.MustCompile(`^pft[rs]\d{3}\n`)
 
@@ -75,6 +76,8 @@ func checkHeaders(header [HEADER_SIZE]byte, conn io.ReadWriter) error {
 /e/g/f 	 to  f/a.c, f/b.d, f/g.n
 */
 func prepareFileNames(names []string) (forOpen, forSend []string, err error) {
+	wrap_err := func (err error) error {return fmt.Errorf("prepare \"%d\" files to send:\n%w", len(names), err)}
+
 	forOpen = make([]string, 0, len(names))
 	forSend = make([]string, 0, len(names))
 
@@ -82,7 +85,7 @@ func prepareFileNames(names []string) (forOpen, forSend []string, err error) {
 	addEntry = func(fullPath, name string) error {
 		fi, err := os.Stat(fullPath)
 		if err != nil {
-			return err
+			return wrap_err(err)
 		}
 		if !fi.IsDir() {
 			forOpen = append(forOpen, fullPath)
@@ -90,7 +93,7 @@ func prepareFileNames(names []string) (forOpen, forSend []string, err error) {
 		} else {
 			entries, err := os.ReadDir(fullPath)
 			if err != nil {
-				return err
+				return wrap_err(err)
 			}
 			for _, entry := range entries {
 				if entry.Type() == fs.ModeSymlink {
@@ -105,7 +108,7 @@ func prepareFileNames(names []string) (forOpen, forSend []string, err error) {
 					err = addEntry(path.Join(fullPath, entry.Name()), path.Join(name, entry.Name()))
 				}
 				if err != nil {
-					return err
+					return wrap_err(err)
 				}
 
 			}
@@ -116,12 +119,12 @@ func prepareFileNames(names []string) (forOpen, forSend []string, err error) {
 	for _, fullPath := range names {
 		fi, err := os.Stat(fullPath)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, wrap_err(err)
 		}
 
 		err = addEntry(fullPath, fi.Name())
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, wrap_err(err)
 		}
 	}
 
@@ -155,17 +158,22 @@ func bufSizeToNum(size string) (int, error) {
 }
 
 func checkDirExist(name string, create bool) error {
+	wrap_err := func (err error) error {return fmt.Errorf("check \"%s\" dir existence:\n%w", name, err)}
+
+	if name == "" {
+		return nil
+	}
 	_, err := os.Stat(name)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) && create {
 			err = os.MkdirAll(name, 0755)
 			if err != nil {
-				return err
+				return wrap_err(err)
 			} else {
 				fmt.Printf("Create \"%s\" directory\n", name)
 			}
 		} else {
-			return err
+			return wrap_err(err)
 		}
 	}
 	return nil
