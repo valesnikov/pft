@@ -37,6 +37,7 @@ pft cr -a <addr> -p <port> -d <destdir>
 * __-d --destdir {dir}__ - the folder where the received files will be uploaded, specify only for the receiver, default "."
 * __-b --buffer-size__ - r/w buffer size
 * __-m --mkdir__ - сreate destdir if it does not exist
+* __-z --zstd__ - compression during transmission, must be specified for at least one party
 * __files__ - files to be sent, specify only for the sender, separated by a space
 
 # Examples
