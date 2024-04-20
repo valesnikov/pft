@@ -10,7 +10,7 @@ import (
 )
 
 func sendFiles(names []string, conn io.Writer, bufSize int) error {
-	wrap_err := func (err error) error {return fmt.Errorf("\nsend files:\n%w", err)}
+	wrap_err := func(err error) error { return fmt.Errorf("\nsend files:\n%w", err) }
 
 	filesOpen, filesNames, err := prepareFileNames(names)
 	if err != nil {

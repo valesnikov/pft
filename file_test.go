@@ -44,8 +44,8 @@ func Test_NewFileHeader(t *testing.T) {
 
 		file.Close()
 		rightHeaders[i] = FileHeader{
-			Size: uint64(len(b)),
-			Name: fileNameBase,
+			Size:  uint64(len(b)),
+			Name:  fileNameBase,
 			Flags: 0,
 		}
 	}

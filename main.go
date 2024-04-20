@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/urfave/cli/v2"
+	"io"
 	"os"
+
+	"github.com/klauspost/compress/zstd"
+	"github.com/urfave/cli/v2"
 )
 
 var portFlag = &cli.StringFlag{
@@ -41,13 +44,20 @@ var mkdirFlag = &cli.BoolFlag{
 	Usage:   "сreate destdir if it does not exist",
 }
 
+var zstdFlag = &cli.BoolFlag{
+	Name:    "zstd",
+	Aliases: []string{"z"},
+	Value:   false,
+	Usage:   "enables compression when sending",
+}
+
 func main() {
 	cmd := &cli.App{
 		Name:      "pft",
 		Usage:     "TCP file sender/receiver",
 		UsageText: "pft [global options] command [command options] [files...]",
 		Version:   "v0.4.1-develop",
-		Flags:     []cli.Flag{bufferFlag, portFlag},
+		Flags:     []cli.Flag{bufferFlag, portFlag, zstdFlag},
 		Commands: []*cli.Command{
 			{
 				Name:      "host-send",
@@ -55,6 +65,7 @@ func main() {
 				Usage:     "sending files as a host",
 				UsageText: "pft hs [options] [files...]",
 				Action:    HostSend,
+				Flags:     []cli.Flag{},
 			},
 			{
 				Name:      "host-receive",
@@ -109,7 +120,28 @@ func HostSend(ctx *cli.Context) error {
 		return err
 	}
 
-	return sendFiles(files, conn, size)
+	sendFlags := uint32(0)
+	if ctx.Bool("zstd") {
+		sendFlags |= ZstdComressionFlag
+	}
+
+	flags, err := exchangeFlags(sendFlags, conn)
+	if err != nil {
+		return err
+	}
+
+	var writer io.Writer = conn
+	if flags&ZstdComressionFlag|sendFlags&ZstdComressionFlag != 0 {
+		zstdConn, err := zstd.NewWriter(conn, zstd.WithEncoderLevel(zstd.SpeedFastest))
+		if err != nil {
+			return err
+		}
+		fmt.Println("Use zstd")
+		defer zstdConn.Close()
+		writer = zstdConn
+	}
+
+	return sendFiles(files, writer, size)
 }
 
 func HostReceive(ctx *cli.Context) error {
@@ -123,7 +155,7 @@ func HostReceive(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	
+
 	err = checkDirExist(ctx.String("destdir"), ctx.Bool("mkdir"))
 	if err != nil {
 		return err
@@ -134,7 +166,28 @@ func HostReceive(ctx *cli.Context) error {
 		return err
 	}
 
-	return getFiles(ctx.String("destdir"), conn, size)
+	sendFlags := uint32(0)
+	if ctx.Bool("zstd") {
+		sendFlags |= ZstdComressionFlag
+	}
+
+	flags, err := exchangeFlags(sendFlags, conn)
+	if err != nil {
+		return err
+	}
+
+	var reader io.Reader = conn
+	if flags&ZstdComressionFlag|sendFlags&ZstdComressionFlag != 0 {
+		zstdConn, err := zstd.NewReader(conn)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Use zstd")
+		defer func() { go zstdConn.Close() }() //may be blocked
+		reader = zstdConn
+	}
+
+	return getFiles(ctx.String("destdir"), reader, size)
 
 }
 
@@ -160,7 +213,28 @@ func ClientSend(ctx *cli.Context) error {
 		return err
 	}
 
-	return sendFiles(files, conn, size)
+	sendFlags := uint32(0)
+	if ctx.Bool("zstd") {
+		sendFlags |= ZstdComressionFlag
+	}
+
+	flags, err := exchangeFlags(sendFlags, conn)
+	if err != nil {
+		return err
+	}
+
+	var writer io.Writer = conn
+	if flags&ZstdComressionFlag|sendFlags&ZstdComressionFlag != 0 {
+		zstdConn, err := zstd.NewWriter(conn, zstd.WithEncoderLevel(zstd.SpeedFastest))
+		if err != nil {
+			return err
+		}
+		fmt.Println("Use zstd")
+		defer zstdConn.Close()
+		writer = zstdConn
+	}
+
+	return sendFiles(files, writer, size)
 }
 
 func ClientReceive(ctx *cli.Context) error {
@@ -186,5 +260,26 @@ func ClientReceive(ctx *cli.Context) error {
 		return err
 	}
 
-	return getFiles(ctx.String("destdir"), conn, size)
+	sendFlags := uint32(0)
+	if ctx.Bool("zstd") {
+		sendFlags |= ZstdComressionFlag
+	}
+
+	flags, err := exchangeFlags(sendFlags, conn)
+	if err != nil {
+		return err
+	}
+
+	var reader io.Reader = conn
+	if flags&ZstdComressionFlag|sendFlags&ZstdComressionFlag != 0 {
+		zstdConn, err := zstd.NewReader(conn)
+		if err != nil {
+			return err
+		}
+		fmt.Println("Use zstd")
+		defer func() { go zstdConn.Close() }() //may be blocked
+		reader = zstdConn
+	}
+
+	return getFiles(ctx.String("destdir"), reader, size)
 }

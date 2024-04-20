@@ -9,13 +9,13 @@ import (
 )
 
 type FileHeader struct {
-	Size uint64
-	Name string
+	Size  uint64
+	Name  string
 	Flags uint32
 }
 
 func MakeFileHeader(filepath string, flags uint32) (FileHeader, error) {
-	wrap_err := func (err error) error {return fmt.Errorf("make \"%s\" file header:\n%w", filepath, err)}
+	wrap_err := func(err error) error { return fmt.Errorf("make \"%s\" file header:\n%w", filepath, err) }
 
 	file, err := os.Open(filepath)
 	if err != nil {
@@ -31,8 +31,8 @@ func MakeFileHeader(filepath string, flags uint32) (FileHeader, error) {
 	fileName := path.Base(file.Name())
 
 	return FileHeader{
-		Size: uint64(fStat.Size()),
-		Name: fileName,
+		Size:  uint64(fStat.Size()),
+		Name:  fileName,
 		Flags: flags,
 	}, nil
 }
@@ -47,7 +47,7 @@ func (fh FileHeader) Serialize() []byte {
 }
 
 func ReadFileHeader(reader io.Reader) (FileHeader, error) {
-	wrap_err := func (err error) error {return fmt.Errorf("read file header from \"%v\":\n%w", reader, err)}
+	wrap_err := func(err error) error { return fmt.Errorf("read file header from \"%v\":\n%w", reader, err) }
 
 	sizesBuf := [16]byte{}
 	_, err := io.ReadFull(reader, sizesBuf[:])
@@ -59,8 +59,8 @@ func ReadFileHeader(reader io.Reader) (FileHeader, error) {
 	fileSize := binary.BigEndian.Uint64(sizesBuf[8:16])
 	if nameSize == 0 {
 		return FileHeader{
-			Size: fileSize,
-			Name: "",
+			Size:  fileSize,
+			Name:  "",
 			Flags: flags,
 		}, nil
 	}
@@ -71,8 +71,8 @@ func ReadFileHeader(reader io.Reader) (FileHeader, error) {
 		return FileHeader{}, wrap_err(err)
 	}
 	return FileHeader{
-		Size: fileSize,
-		Name: string(nameBuf),
+		Size:  fileSize,
+		Name:  string(nameBuf),
 		Flags: flags,
 	}, nil
 }

@@ -12,9 +12,7 @@ import (
 )
 
 func getFiles(destDir string, conn io.Reader, bufSize int) error {
-	wrap_err := func (err error) error {return fmt.Errorf("\nget files to \"%s\":\n%w", destDir, err)}
-
-
+	wrap_err := func(err error) error { return fmt.Errorf("\nget files to \"%s\":\n%w", destDir, err) }
 
 	recvBuf := make([]byte, bufSize)
 	fmt.Println("Started receiving")

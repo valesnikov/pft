@@ -12,6 +12,7 @@ import (
 
 /*
 len(HEADER) byte - header
+4 byte - global flags
 while {filename size} != 0 {
 	4 byte - flags //unused
 	4 byte - filename size
@@ -76,7 +77,7 @@ func checkHeaders(header [HEADER_SIZE]byte, conn io.ReadWriter) error {
 /e/g/f 	 to  f/a.c, f/b.d, f/g.n
 */
 func prepareFileNames(names []string) (forOpen, forSend []string, err error) {
-	wrap_err := func (err error) error {return fmt.Errorf("prepare \"%d\" files to send:\n%w", len(names), err)}
+	wrap_err := func(err error) error { return fmt.Errorf("prepare \"%d\" files to send:\n%w", len(names), err) }
 
 	forOpen = make([]string, 0, len(names))
 	forSend = make([]string, 0, len(names))
@@ -158,7 +159,7 @@ func bufSizeToNum(size string) (int, error) {
 }
 
 func checkDirExist(name string, create bool) error {
-	wrap_err := func (err error) error {return fmt.Errorf("check \"%s\" dir existence:\n%w", name, err)}
+	wrap_err := func(err error) error { return fmt.Errorf("check \"%s\" dir existence:\n%w", name, err) }
 
 	if name == "" {
 		return nil

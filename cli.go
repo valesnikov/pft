@@ -67,7 +67,7 @@ func progressBar(progress float64, cellNumber int, roundPrec int) string {
 }
 
 func cleanLine() error {
-	wrap_err := func (err error) error {return fmt.Errorf("clear line:\n%w", err)}
+	wrap_err := func(err error) error { return fmt.Errorf("clear line:\n%w", err) }
 	_, err := fmt.Print("\033[2K\r")
 	return wrap_err(err)
 }
