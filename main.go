@@ -56,7 +56,7 @@ func main() {
 		Name:      "pft",
 		Usage:     "TCP file sender/receiver",
 		UsageText: "pft [global options] command [command options] [files...]",
-		Version:   "v0.5.0",
+		Version:   "v0.5.0-develop",
 		Flags:     []cli.Flag{bufferFlag, portFlag, zstdFlag},
 		Commands: []*cli.Command{
 			{
