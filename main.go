@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 
 	"github.com/klauspost/compress/zstd"
@@ -74,6 +75,14 @@ func main() {
 				UsageText: "pft hr [options]",
 				Action:    HostReceive,
 				Flags:     []cli.Flag{destDirFlag, mkdirFlag},
+			},
+			{
+				Name:      "host-pipe",
+				Aliases:   []string{"pipe", "p"},
+				Usage:     "pipe between 2 clients",
+				UsageText: "pft p [options]",
+				Action:    HostPipe,
+				Flags:     []cli.Flag{},
 			},
 			{
 				Name:      "client-send",
@@ -282,4 +291,57 @@ func ClientReceive(ctx *cli.Context) error {
 	}
 
 	return getFiles(ctx.String("destdir"), reader, size)
+}
+
+func HostPipe(ctx *cli.Context) error {
+	size, err := bufSizeToNum(ctx.String("buffer-size"))
+	if err != nil {
+		return err
+	}
+
+	conn1, err := connectHost(ctx.String("port"))
+	if err != nil {
+		return err
+	}
+	defer conn1.Close()
+
+	conn2, err := connectHost(ctx.String("port"))
+	if err != nil {
+		return err
+	}
+	defer conn2.Close()
+
+
+	pipe := func (in net.Conn, out net.Conn, res chan error) {
+		var err error = nil
+
+		buf := make([]byte, size)
+		for {
+			n, err := in.Read(buf)
+			if err != nil {
+				break
+			}
+			_, err = out.Write(buf[:n])
+			if err != nil {
+				break
+			}
+		}
+		if err == io.EOF {
+			err = nil
+		}
+		res <- err
+	}
+
+	res1 := make(chan error)
+	res2 := make(chan error)
+	
+	go pipe(conn1, conn2, res1)
+	go pipe(conn2, conn1, res2)
+	
+	err = <-res1
+	if err != nil {
+		return err
+	}
+	err = <-res2
+	return err
 }
